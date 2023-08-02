@@ -178,7 +178,7 @@ class RddReport:
         self._logger = logging.getLogger(__name__)
 
         self._org = org
-        self._gh = GithubConnection.getConnection(token=token)
+        self._gh = GithubConnection.getconnection(token=token)
         self._start_time = start_time
         self._end_time = end_time
         self._build = build
