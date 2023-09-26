@@ -638,8 +638,9 @@ class RstRddReport(RddReport):
 
         self._rst_doc.content(
             "The 'Planned Updates' are organized by 'Themes' (or 'Release Themes'), which are defined in advance "
-            f"and approved by the PDS Software Working Group (see `Plan {self._build}`_)"
+            f"and approved by the PDS Software Working Group (see `Plan {self._build}`_)."
         )
+        self._rst_doc.newline()
         self._rst_doc.content(
             "The 'Other Updates' occurs during the build cycle without being planned or attached to a theme. "
             "They are organized by types (bug, enhancements, requirements, tasks). Any updates that require "
