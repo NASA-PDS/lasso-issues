@@ -537,8 +537,9 @@ class RstRddReport(RddReport):
             self._rst_doc.table(columns, data=ticket_lines)
         else:
             self._rst_doc.content(
-                "No requirements, significant enhancements, or bug fixes identified for this Build."
-                + " See theme for more details."
+                "No requirements, enhancements, or bug fixes tickets identified for this theme in the current build."
+                + " Click on the link in the section title for details.",
+                indent=4
             )
 
         self._rst_doc.newline()
@@ -628,7 +629,6 @@ class RstRddReport(RddReport):
         self._logger.info("Add software changes")
         self._rst_doc.h1("Software Changes")
         self._rst_doc.content(
-            "The changes types are 'Bug', 'Enhancement' or 'Requirement'. "
             "For each software repository, the changes are listed in 2 categories: "
         )
         self._rst_doc.newline()
@@ -641,7 +641,7 @@ class RstRddReport(RddReport):
             f"and approved by the PDS Software Working Group (see `Plan {self._build}`_)"
         )
         self._rst_doc.content(
-            "The 'Other Updates' occurs during the build cycle witout being planned or attached to a theme. "
+            "The 'Other Updates' occurs during the build cycle without being planned or attached to a theme. "
             "They are organized by types (bug, enhancements, requirements, tasks). Any updates that require "
             "a de-scope of planned tasks are reviewed by the PDS Software Working Group."
         )
