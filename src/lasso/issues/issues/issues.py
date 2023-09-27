@@ -6,11 +6,11 @@ from lasso.issues.argparse import add_standard_arguments
 from lasso.issues.github import GithubConnection
 from mdutils.mdutils import MdUtils
 
-from . import MetricsRddReport
-from . import RstRddReport
-from .utils import get_issue_priority
-from .utils import get_issues_groupby_type
-from .utils import TOP_PRIORITIES
+from lasso.issues.issues import MetricsRddReport
+from lasso.issues.issues import RstRddReport
+from lasso.issues.issues.utils import get_issue_priority
+from lasso.issues.issues.utils import get_issues_groupby_type
+from lasso.issues.issues.utils import TOP_PRIORITIES
 
 
 DEFAULT_GITHUB_ORG = "NASA-PDS"
@@ -119,3 +119,9 @@ def main():
 
     else:
         _logger.error("unsupported format %s, must be rst or md or metrics", args.format)
+
+
+if __name__ == "__main__":
+    main()
+
+

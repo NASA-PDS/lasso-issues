@@ -13,6 +13,7 @@ from github3.issues.issue import Issue
 from github3.issues.issue import ShortIssue
 from lasso.issues.github import GithubConnection
 from zenhub import Zenhub
+from zenhub.exceptions import NotFoundError
 
 from .utils import get_issue_priority
 from .utils import has_label
@@ -369,15 +370,18 @@ class EpicFactory:
             or enhancement.type.value == EnhancementTypes.EPIC.value
         ):  # not leaf in the tree
             self._logger.debug("search for epic children")
-            epic_child_issues = self._zenhub.get_epic_data(repo.id, gh_issue.number)
-            self._logger.debug(epic_child_issues)
-            for issue in epic_child_issues["issues"]:
-                if issue["repo_id"] == repo.id:
-                    self._logger.debug("github api request, get issue %i", issue["issue_number"])
-                    gh_child_issue = repo.issue(issue["issue_number"])
-                    if has_label(gh_child_issue, build) and gh_child_issue.state == "closed":
-                        enhancement_child = self.create_enhancement(repo, gh_child_issue, build)
-                        enhancement.add_child(enhancement_child)
+            try:
+                epic_child_issues = self._zenhub.get_epic_data(repo.id, gh_issue.number)
+                self._logger.debug(epic_child_issues)
+                for issue in epic_child_issues["issues"]:
+                    if issue["repo_id"] == repo.id:
+                        self._logger.debug("github api request, get issue %i", issue["issue_number"])
+                        gh_child_issue = repo.issue(issue["issue_number"])
+                        if has_label(gh_child_issue, build) and gh_child_issue.state == "closed":
+                            enhancement_child = self.create_enhancement(repo, gh_child_issue, build)
+                            enhancement.add_child(enhancement_child)
+            except NotFoundError:
+                self._logger.warning("The theme %i is not a zenhub Epic, we cannot identify child tickets", gh_issue.number)
 
         return enhancement
 
@@ -538,7 +542,7 @@ class RstRddReport(RddReport):
         else:
             self._rst_doc.content(
                 "No requirements, enhancements, or bug fixes tickets identified for this theme in the current build."
-                + " Click on the link in the section title for details.",
+                + " Click on the link in this section title for details.",
                 indent=4
             )
 
@@ -668,6 +672,7 @@ class RstRddReport(RddReport):
 
         for _repo in self.available_repos():
             if not repos or _repo.name in repos:
+                self._logger.info("Adding changes for repo %s", _repo.name)
                 self._write_repo_change_section(_repo)
 
     def _add_liens(self):
