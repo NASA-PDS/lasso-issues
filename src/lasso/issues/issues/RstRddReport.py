@@ -229,6 +229,19 @@ class RddReport:
         return issues
 
 
+class Bug(ShortIssue):
+    def get_class(self):
+        """
+        Bug are of 3 classes:
+           - user bug: raise on a stable release
+           - i&t: raise during a verification phase, on a stable release, before official release
+           - developer bug: raise on a development release
+
+        @return: one of 'user', 'dev', 'int'
+        """
+        pass
+
+
 class MetricsRddReport(RddReport):
     """A metrics report, which is a kind of Rdd report."""
 
