@@ -14,7 +14,7 @@ class GithubConnection:
     gh = None
 
     @classmethod
-    def getconnection(cls, token=None):
+    def get_connection(cls, token=None):
         """Get the connection."""
         if not cls.gh:
             token = token or os.environ.get("GITHUB_TOKEN")
