@@ -22,7 +22,7 @@ def add_label_to_open_bugs(repo, label_name: str):
 
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter, description=__doc__)
-    parser.add_argument("--version", help="stable version containing the open bugs")
+    parser.add_argument("--labelled-version", help="stable version containing the open bugs")
     parser.add_argument("--github-org", help="github org", default=DEFAULT_GITHUB_ORG)
     parser.add_argument(
         "--github-repo",

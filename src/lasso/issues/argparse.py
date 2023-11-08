@@ -7,7 +7,8 @@ from . import VERSION
 
 def add_standard_arguments(parser: argparse.ArgumentParser):
     """Add normally expected command-line arguments to the given ``parser``."""
-
+    # The "version" option
+    parser.add_argument("--version", action="version", version=VERSION)
     # Logging options
     group = parser.add_mutually_exclusive_group()
     group.add_argument(
