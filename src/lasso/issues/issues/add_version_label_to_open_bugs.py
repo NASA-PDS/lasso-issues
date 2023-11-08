@@ -13,8 +13,7 @@ def add_label_to_open_bugs(repo, label_name: str):
     The label need to be created first.
 
     @param repo: repository from the github3 api
-    @param label_name:
-    @return:
+    @param label_name: the name of the label to be added
     """
 
     for issue in repo.issues(state="open", labels=["bug"]):
@@ -35,15 +34,10 @@ def main():
 
     gh = GithubConnection.get_connection(token=args.token)
     repo = gh.repository(args.github_org, args.github_repo)
-    repo.create_label(args.version, "#062C9B")
-    add_label_to_open_bugs(repo, args.version)
+    label = f"open.{args.version}"
+    repo.create_label(label, "#062C9B")
+    add_label_to_open_bugs(repo, label)
 
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
