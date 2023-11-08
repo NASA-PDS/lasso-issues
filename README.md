@@ -6,6 +6,7 @@ The PDS Lasso Issues package provides utilities handle issues on GitHub. It prov
 - `pds-issues`
 - `move-issues`
 - `pds-labels`
+- `add-version-label-to-open-bugs`
 
 Please visit our website at: https://nasa-pds.github.io/lasso-issues
 
