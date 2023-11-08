@@ -6,6 +6,7 @@ from lasso.issues.issues.issues import DEFAULT_GITHUB_ORG
 from lasso.issues.argparse import add_standard_arguments
 from lasso.issues.github import GithubConnection
 
+COLOR_OF_VERSION_LABELS = "#062C9B"
 
 def add_label_to_open_bugs(repo, label_name: str):
     """
@@ -37,7 +38,7 @@ def main():
     gh = GithubConnection.get_connection(token=args.token)
     repo = gh.repository(args.github_org, args.github_repo)
     label = f"open.{args.version}"
-    repo.create_label(label, "#062C9B")
+    repo.create_label(label, COLOR_OF_VERSION_LABELS)
     add_label_to_open_bugs(repo, label)
 
 
