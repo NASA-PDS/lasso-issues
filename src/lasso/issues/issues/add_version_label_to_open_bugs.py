@@ -3,6 +3,7 @@ import argparse
 
 # have ever seen the same module name embedded so many time
 from lasso.issues.issues.issues import DEFAULT_GITHUB_ORG
+from lasso.issues.argparse import add_standard_arguments
 from lasso.issues.github import GithubConnection
 
 
@@ -22,6 +23,7 @@ def add_label_to_open_bugs(repo, label_name: str):
 
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter, description=__doc__)
+    add_standard_arguments(parser)
     parser.add_argument("--labelled-version", help="stable version containing the open bugs")
     parser.add_argument("--github-org", help="github org", default=DEFAULT_GITHUB_ORG)
     parser.add_argument(
