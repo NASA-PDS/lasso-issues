@@ -37,7 +37,7 @@ def main():
 
     gh = GithubConnection.get_connection(token=args.token)
     repo = gh.repository(args.github_org, args.github_repo)
-    label = f"open.{args.version}"
+    label = f"open.{args.labelled_version}"
     repo.create_label(label, COLOR_OF_VERSION_LABELS)
     add_label_to_open_bugs(repo, label)
 
