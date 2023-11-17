@@ -1,12 +1,14 @@
 """Lasso Issues: add version label to open bugs issues"""
 import argparse
 
-# have ever seen the same module name embedded so many time
-from lasso.issues.issues.issues import DEFAULT_GITHUB_ORG
 from lasso.issues.argparse import add_standard_arguments
 from lasso.issues.github import GithubConnection
+from lasso.issues.issues.issues import DEFAULT_GITHUB_ORG
+
+# have ever seen the same module name embedded so many time
 
 COLOR_OF_VERSION_LABELS = "#062C9B"
+
 
 def add_label_to_open_bugs(repo, label_name: str):
     """
