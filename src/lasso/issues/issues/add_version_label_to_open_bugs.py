@@ -8,6 +8,7 @@ from lasso.issues.github import GithubConnection
 
 COLOR_OF_VERSION_LABELS = "#062C9B"
 
+
 def add_label_to_open_bugs(repo, label_name: str):
     """
     Add a label (str) to the open bugs of a repository.
@@ -16,10 +17,16 @@ def add_label_to_open_bugs(repo, label_name: str):
 
     @param repo: repository from the github3 api
     @param label_name: the name of the label to be added
-    """
 
+    @return: True if at least on bug has been found and labelled
+    """
+    one_found = False
     for issue in repo.issues(state="open", labels=["bug"]):
         issue.add_labels(label_name)
+        one_found = True
+
+    return one_found
+
 
 
 def main():
@@ -39,7 +46,12 @@ def main():
     repo = gh.repository(args.github_org, args.github_repo)
     label = f"open.{args.labelled_version}"
     repo.create_label(label, COLOR_OF_VERSION_LABELS)
-    add_label_to_open_bugs(repo, label)
+    print("Add the following line to your release notes on github:")
+    section_title = "**Known bugs** and possible work arounds"
+    if add_label_to_open_bugs(repo, label):
+        print(f"{section_title}: [known bugs in {args.labelled_version}](https://github.com/{args.github_org}/{args.github_repo}/issues?q=is%3Aissue+label%3Aopen.{args.labelled_version})")
+    else:
+        print(f"{section_title}: no known bugs")
 
 
 if __name__ == "__main__":
