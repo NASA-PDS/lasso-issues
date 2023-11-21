@@ -53,9 +53,22 @@ repos:
         stages: [push]
         pass_filenames: false
 
-# #65: support for git-secrets
--   repo: https://github.com/awslabs/git-secrets.git
-    # We have to use an sha here instead of a tag because of awslabs/git-secrets#182
-    rev: b9e96b3212fa06aea65964ff0d5cda84ce935f38
+-   repo: https://github.com/NASA-AMMOS/slim-detect-secrets
+    # using commit id for now, will change to tag when official version is released
+    rev: 91e097ad4559ae6ab785c883dc5ed989202c7fbe
     hooks:
-    -   id: git-secrets
+      - id: detect-secrets
+        args:
+          - '--baseline'
+          - '.secrets.baseline'
+          - --exclude-files '\.secrets..*'
+          - --exclude-files '\.git.*'
+          - --exclude-files '\.pre-commit-config\.yaml'
+          - --exclude-files '\.mypy_cache'
+          - --exclude-files '\.pytest_cache'
+          - --exclude-files '\.tox'
+          - --exclude-files '\.venv'
+          - --exclude-files 'venv'
+          - --exclude-files 'dist'
+          - --exclude-files 'build'
+          - --exclude-files '.*\.egg-info'

@@ -6,25 +6,27 @@ from datetime import datetime
 
 from lasso.issues.argparse import add_standard_arguments
 from lasso.issues.github import GithubConnection
-from mdutils.mdutils import MdUtils
-
 from lasso.issues.issues import MetricsRddReport
 from lasso.issues.issues import RstRddReport
 from lasso.issues.issues.utils import get_issue_priority
 from lasso.issues.issues.utils import get_issues_groupby_type
 from lasso.issues.issues.utils import TOP_PRIORITIES
+from mdutils.mdutils import MdUtils
 
 
 DEFAULT_GITHUB_ORG = "NASA-PDS"
 
 _logger = logging.getLogger(__name__)
 
+
 def convert_issues_to_known_bugs_report(md_file, repo_name, issues_map):
     """Convert the issue map into a known bug report, e.g. for a release"""
     md_file.new_header(level=1, title=repo_name)
 
-    md_file.new_line("Here is the list of the known bug for the current release, "
-                     "click on them for more information and possible work around.")
+    md_file.new_line(
+        "Here is the list of the known bug for the current release, "
+        "click on them for more information and possible work around."
+    )
     table = ["Issue", "Severity"]
     count = 1
     for short_issue in issues_map["bug"]:
@@ -66,11 +68,11 @@ def create_md_issue_report(org, repos, issue_state="all", start_time=None, token
     """Create the issue report, in Markdown format."""
     gh = GithubConnection.get_connection(token=token)
 
-    out_report_function_name = f'convert_issues_to_{output_report}_report'
+    out_report_function_name = f"convert_issues_to_{output_report}_report"
     thismodule = sys.modules[__name__]
     out_report_function = getattr(thismodule, out_report_function_name)
 
-    current_date = datetime.now().strftime('%Y-%m-%d')
+    current_date = datetime.now().strftime("%Y-%m-%d")
     title = "PDS EN Issues" if output_report == "planning" else f"Known Bugs on {current_date}"
     _md_file = MdUtils(file_name="pdsen_issues", title=title)
     for _repo in gh.repositories_by(org):
@@ -129,7 +131,7 @@ def main():
             issue_state=args.issue_state,
             start_time=args.start_time,
             token=args.token,
-            output_report=args.report
+            output_report=args.report,
         )
 
     elif args.format == "rst":
@@ -152,5 +154,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
