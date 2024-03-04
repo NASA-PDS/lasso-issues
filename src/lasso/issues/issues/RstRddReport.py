@@ -5,6 +5,7 @@ Now if only someone could define "Rdd"! 😆
 import logging
 import os
 import sys
+import types
 from datetime import datetime
 from enum import Enum
 
@@ -50,16 +51,30 @@ _indent = _indent_ok_for_table
 class RstClothReferenceable(rstcloth.RstCloth):
     """Apparently this is cloth described in reStructuredText that is also referenceable."""
 
-    def __init__(self, line_width=160):
+    def __init__(self, stream, line_width=160):
         """Initializer."""
-        super().__init__(line_width=line_width)
+        super().__init__(stream, line_width=line_width)
+
+        self._stream = stream
         self._deferred_directives = []
+        stream._deferred_directives = self._deferred_directives
+
+        # in the close of the stream we want to add at last
+        # the RST directives that have been cumulated during
+        # the creation of the document.
+        original_stream_close = stream.close
+
+        def new_close(self):
+            stream.write("\n".join(self._deferred_directives))
+            original_stream_close()
+
+        stream.close = types.MethodType(new_close, stream)
 
     def hyperlink(self, ref, url):
         """Hyperlink the given ``ref`` to ``url``."""
         self._deferred_directives.append(f".. _{ref}: {url}")
 
-    def deferred_directive(self, name, arg=None, fields=None, content=None, indent=0, wrap=True, reference=None):
+    def deferred_directive(self, name, arg=None, fields=None, content=None, indent=0, reference=None):
         """Adds a deferred directive.
 
         :param name: the directive itself to use
@@ -67,11 +82,9 @@ class RstClothReferenceable(rstcloth.RstCloth):
         :param fields: fields to append as children underneath the directive
         :param content: the text to write into this element
         :param indent: (optional default=0) number of characters to indent this element
-        :param wrap: (optional, default=True) Whether or not to wrap lines to the line_width
         :param reference: (optional, default=None) Reference to call the directive elswhere
         :return:
         """
-        _logger.debug("Ignoring wrap parameter, presumably for api consistency. wrap=%s", wrap)
         o = list()
         if reference:
             o.append(".. |{0}| {1}::".format(reference, name))
@@ -95,24 +108,24 @@ class RstClothReferenceable(rstcloth.RstCloth):
 
         self._deferred_directives.extend(_indent(o, indent))
 
-    def write(self, filename):
-        """Write myself to the given ``filename``.
-
-        :param filename:
-        :return:
-        """
-        dirpath = os.path.dirname(filename)
-        if os.path.isdir(dirpath) is False:
-            try:
-                os.makedirs(dirpath)
-            except OSError:
-                _logger.info("{0} exists. ignoring.".format(dirpath))
-
-        with open(filename, "w") as f:
-            f.write("\n".join(self._data))
-            f.write("\n")
-            f.write("\n".join(self._deferred_directives))
-            f.write("\n")
+    # def write(self, filename):
+    #     """Write myself to the given ``filename``.
+    #
+    #     :param filename:
+    #     :return:
+    #     """
+    #     dirpath = os.path.dirname(filename)
+    #     if os.path.isdir(dirpath) is False:
+    #         try:
+    #             os.makedirs(dirpath)
+    #         except OSError:
+    #             _logger.info("{0} exists. ignoring.".format(dirpath))
+    #
+    #     with open(filename, "w") as f:
+    #         f.write("\n".join(self._data))
+    #         f.write("\n")
+    #         f.write("\n".join(self._deferred_directives))
+    #         f.write("\n")
 
 
 class PDSIssue(ShortIssue):
@@ -168,7 +181,9 @@ class RddReport:
     )
     SWG_REPO_NAME = "pds-swg"
 
-    def __init__(self, org, title=None, start_time=None, end_time=None, build=None, token=None):
+    def __init__(
+        self, org, title=None, start_time=None, end_time=None, build=None, token=None, filename="pdsen_issues.rst"
+    ):
         """Initializer."""
         # Quiet github3 logging — 😬 This should be user-controllable (command-line, config file) and not
         # forced by the code.
@@ -184,7 +199,9 @@ class RddReport:
         self._end_time = end_time
         self._build = build
         self._target_build = build.replace("-SNAPSHOT", "")
-        self._rst_doc = RstClothReferenceable()
+
+        self._stream = open(filename, "w")
+        self._rst_doc = RstClothReferenceable(self._stream)
 
         self._rst_doc.title(title)
 
@@ -381,7 +398,9 @@ class EpicFactory:
                             enhancement_child = self.create_enhancement(repo, gh_child_issue, build)
                             enhancement.add_child(enhancement_child)
             except NotFoundError:
-                self._logger.warning("The theme %i is not a zenhub Epic, we cannot identify child tickets", gh_issue.number)
+                self._logger.warning(
+                    "The theme %i is not a zenhub Epic, we cannot identify child tickets", gh_issue.number
+                )
 
         return enhancement
 
@@ -439,14 +458,17 @@ class RstRddReport(RddReport):
 
     ZENHUB_TOKEN = "ZENHUB_TOKEN"
 
-    def __init__(self, org, title=None, start_time=None, end_time=None, build=None, token=None):
+    def __init__(
+        self, org, title=None, start_time=None, end_time=None, build=None, token=None, filename="pdsen_issues.rst"
+    ):
         """Initializer."""
         if not title:
             build_text = f"(Build {build})" if build else ""
             title = "Release Description Document " + build_text
         super().__init__(org, title=title, start_time=start_time, end_time=end_time, build=build, token=token)
 
-        self._rst_doc = RstClothReferenceable(line_width=120)
+        self._stream = open(filename, "w")
+        self._rst_doc = RstClothReferenceable(self._stream, line_width=120)
         self._rst_doc.title(title)
 
         if RstRddReport.ZENHUB_TOKEN not in os.environ.keys():
@@ -543,7 +565,7 @@ class RstRddReport(RddReport):
             self._rst_doc.content(
                 "No requirements, enhancements, or bug fixes tickets identified for this theme in the current build."
                 + " Click on the link in this section title for details.",
-                indent=4
+                indent=4,
             )
 
         self._rst_doc.newline()
@@ -632,9 +654,7 @@ class RstRddReport(RddReport):
         """Add software changes."""
         self._logger.info("Add software changes")
         self._rst_doc.h1("Software Changes")
-        self._rst_doc.content(
-            "For each software repository, the changes are listed in 2 categories: "
-        )
+        self._rst_doc.content("For each software repository, the changes are listed in 2 categories: ")
         self._rst_doc.newline()
         self._rst_doc.li("Planned Updates")
         self._rst_doc.li("Other Updates")
@@ -659,14 +679,12 @@ class RstRddReport(RddReport):
         self._rst_doc.newline()
         self._rst_doc.li(
             f"{StatusEmoji.SKIP.value} Skip Testing - Testing is not needed for this ticket. These are determined at "
-            "the discretion of the team based upon the technical or operational nature of the closed task.",
-            wrap=False,
+            "the discretion of the team based upon the technical or operational nature of the closed task."
         )
         self._rst_doc.li(f"{StatusEmoji.TESTING_NEEDED.value} Testing Needed")
         self._rst_doc.li(
             f"{StatusEmoji.TESTING_COMPLETE.value} Testing Complete - Initial testing complete, and test "
-            "cases/results documented.",
-            wrap=False,
+            "cases/results documented."
         )
         self._rst_doc.newline()
 
@@ -728,7 +746,7 @@ class RstRddReport(RddReport):
 
     def _add_li(self, s):
         self._rst_doc.newline()
-        self._rst_doc.li(s, wrap=False)
+        self._rst_doc.li(s)
 
     def _add_reference_docs(self):
         self._logger.info("Add reference docs")
@@ -797,7 +815,7 @@ class RstRddReport(RddReport):
             )  # remove B prefix from the build code
 
         self._rst_doc.newline()
-        self._rst_doc.directive("toctree", fields=[("glob", ""), ("maxdepth", 3)], content="rdd.rst")
+        self._rst_doc.directive("toctree", fields=[("glob", ""), ("maxdepth", "3")], content="rdd.rst")
         self._rst_doc.newline()
 
     def _add_standard_and_information_model_changes(self):
@@ -833,7 +851,7 @@ class RstRddReport(RddReport):
             self._rst_doc.content("No PDS4 Standards Updates")
             self._rst_doc.newline()
 
-    def create(self, repos, filename):
+    def create(self, repos):
         """Create."""
         self._logger.info("Create RDD rst")
         self._add_introduction()
@@ -843,7 +861,8 @@ class RstRddReport(RddReport):
         self._add_software_catalogue()
         self._add_install_and_operation()
         self._add_reference_docs()
-        self.write(filename)
+        # close the stream, which also adds the deferred directives
+        self._stream.close()
 
     def add_repo(self, repo):
         """Add ``repo``."""
