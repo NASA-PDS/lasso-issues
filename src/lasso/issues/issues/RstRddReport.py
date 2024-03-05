@@ -108,25 +108,6 @@ class RstClothReferenceable(rstcloth.RstCloth):
 
         self._deferred_directives.extend(_indent(o, indent))
 
-    # def write(self, filename):
-    #     """Write myself to the given ``filename``.
-    #
-    #     :param filename:
-    #     :return:
-    #     """
-    #     dirpath = os.path.dirname(filename)
-    #     if os.path.isdir(dirpath) is False:
-    #         try:
-    #             os.makedirs(dirpath)
-    #         except OSError:
-    #             _logger.info("{0} exists. ignoring.".format(dirpath))
-    #
-    #     with open(filename, "w") as f:
-    #         f.write("\n".join(self._data))
-    #         f.write("\n")
-    #         f.write("\n".join(self._deferred_directives))
-    #         f.write("\n")
-
 
 class PDSIssue(ShortIssue):
     """A PDS-specific issue."""
