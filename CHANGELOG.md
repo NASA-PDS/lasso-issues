@@ -1,8 +1,16 @@
 # Changelog
 
-## [release/1.2.0](https://github.com/NASA-PDS/lasso-issues/tree/release/1.2.0) (2024-01-19)
+## [«unknown»](https://github.com/NASA-PDS/lasso-issues/tree/«unknown») (2024-03-05)
 
-[Full Changelog](https://github.com/NASA-PDS/lasso-issues/compare/v1.1.0...release/1.2.0)
+[Full Changelog](https://github.com/NASA-PDS/lasso-issues/compare/v1.2.0...«unknown»)
+
+**Defects:**
+
+- Unable to generate RDD when upgrading rstcloth 0.5.0 [\#7](https://github.com/NASA-PDS/lasso-issues/issues/7) [[s.medium](https://github.com/NASA-PDS/lasso-issues/labels/s.medium)]
+
+## [v1.2.0](https://github.com/NASA-PDS/lasso-issues/tree/v1.2.0) (2024-01-19)
+
+[Full Changelog](https://github.com/NASA-PDS/lasso-issues/compare/v1.1.0...v1.2.0)
 
 ## [v1.1.0](https://github.com/NASA-PDS/lasso-issues/tree/v1.1.0) (2023-09-27)
 
