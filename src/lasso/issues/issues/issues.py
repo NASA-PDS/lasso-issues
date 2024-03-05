@@ -20,7 +20,7 @@ _logger = logging.getLogger(__name__)
 
 
 def convert_issues_to_known_bugs_report(md_file, repo_name, issues_map):
-    """Convert the issue map into a known bug report, e.g. for a release"""
+    """Convert the issue map into a known bug report, e.g. for a release."""
     md_file.new_header(level=1, title=repo_name)
 
     md_file.new_line(
@@ -139,7 +139,7 @@ def main():
             args.github_org, start_time=args.start_time, end_time=args.end_time, build=args.build, token=args.token
         )
 
-        rst_rdd_report.create(args.github_repos, "pdsen_issues.rst")
+        rst_rdd_report.create(args.github_repos)
 
     elif args.format == "metrics":
         rdd_metrics = MetricsRddReport(

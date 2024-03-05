@@ -1,4 +1,4 @@
-"""Lasso Issues: add version label to open bugs issues"""
+"""Lasso Issues: add version label to open bugs issues."""
 import argparse
 
 from lasso.issues.argparse import add_standard_arguments
@@ -11,8 +11,7 @@ COLOR_OF_VERSION_LABELS = "#062C9B"
 
 
 def add_label_to_open_bugs(repo, label_name: str):
-    """
-    Add a label (str) to the open bugs of a repository.
+    """Add a label (str) to the open bugs of a repository.
 
     The label need to be created first.
 
@@ -29,8 +28,8 @@ def add_label_to_open_bugs(repo, label_name: str):
     return one_found
 
 
-
 def main():
+    """Main function to add labels to open bugs in a release."""
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter, description=__doc__)
     add_standard_arguments(parser)
     parser.add_argument("--labelled-version", help="stable version containing the open bugs")
@@ -50,7 +49,12 @@ def main():
     print("Add the following line to your release notes on github:")
     section_title = "**Known bugs** and possible work arounds"
     if add_label_to_open_bugs(repo, label):
-        print(f"{section_title}: [known bugs in {args.labelled_version}](https://github.com/{args.github_org}/{args.github_repo}/issues?q=is%3Aissue+label%3Aopen.{args.labelled_version})")
+        msg = (
+            f"{section_title}: [known bugs in {args.labelled_version}]"
+            f"(https://github.com/{args.github_org}/{args.github_repo}/"
+            f"issues?q=is%3Aissue+label%3Aopen.{args.labelled_version})"
+        )
+        print(msg)
     else:
         print(f"{section_title}: no known bugs")
 
