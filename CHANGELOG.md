@@ -1,8 +1,8 @@
 # Changelog
 
-## [«unknown»](https://github.com/NASA-PDS/lasso-issues/tree/«unknown») (2024-03-05)
+## [release/1.3.0](https://github.com/NASA-PDS/lasso-issues/tree/release/1.3.0) (2024-03-05)
 
-[Full Changelog](https://github.com/NASA-PDS/lasso-issues/compare/v1.2.0...«unknown»)
+[Full Changelog](https://github.com/NASA-PDS/lasso-issues/compare/v1.2.0...release/1.3.0)
 
 **Defects:**
 
