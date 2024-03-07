@@ -1,5 +1,13 @@
 # Changelog
 
+## [«unknown»](https://github.com/NASA-PDS/lasso-issues/tree/«unknown») (2024-03-07)
+
+[Full Changelog](https://github.com/NASA-PDS/lasso-issues/compare/v1.3.0...«unknown»)
+
+**Defects:**
+
+- add-version-label-to-open-bugs fails when launched multiple times as sometime done through the CICD [\#11](https://github.com/NASA-PDS/lasso-issues/issues/11) [[s.high](https://github.com/NASA-PDS/lasso-issues/labels/s.high)]
+
 ## [v1.3.0](https://github.com/NASA-PDS/lasso-issues/tree/v1.3.0) (2024-03-06)
 
 [Full Changelog](https://github.com/NASA-PDS/lasso-issues/compare/v1.2.0...v1.3.0)
