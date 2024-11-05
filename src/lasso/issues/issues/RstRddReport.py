@@ -4,11 +4,14 @@ Now if only someone could define "Rdd"! 😆
 """
 import logging
 import os
+import re
 import sys
 import types
 from datetime import datetime
 from enum import Enum
 
+import pandas as pd
+import requests
 import rstcloth
 from github3.issues.issue import Issue
 from github3.issues.issue import ShortIssue
@@ -19,6 +22,7 @@ from zenhub.exceptions import NotFoundError
 from .utils import get_issue_priority
 from .utils import has_label
 from .utils import ignore_issue
+
 
 _logger = logging.getLogger(__name__)
 
@@ -857,3 +861,214 @@ class RstRddReport(RddReport):
         """Write to the file named ``filename``."""
         self._logger.info("Create file %s", filename)
         self._rst_doc.write(filename)
+
+
+class NoAcceptanceCriteriaFoundError(Exception):
+    """Missing Acceptance criteria in github ticket."""
+
+    pass
+
+
+class CsvTestCaseReport(RddReport):
+    """Report as test cases importable in test management software. Used with testrail."""
+
+    TEST_CASE_REFS_REGEX = ["B[0-9][0-9]\.[0.9]", "s\..*", "p\..*", "requirement", "bug", "i&t.automated"]  # noqa
+    # TODO make that an argument
+    PROJECT_ID = 168
+    # TODO make that an argument
+    SUITE_ID = 12097
+
+    def __init__(
+        self,
+        org,
+        start_time=None,
+        end_time=None,
+        build=None,
+        token=None,
+        filename="issues.csv",
+        testrail_base_url=None,
+        testrail_user_email=None,
+        testrail_user_token=None,
+    ):
+        """Constructor."""
+        super().__init__(
+            org, title="We don't care for the CSV", start_time=start_time, end_time=end_time, build=build, token=token
+        )
+        self._filename = filename
+
+        from requests.auth import HTTPBasicAuth
+
+        self._basic_auth = HTTPBasicAuth(testrail_user_email, testrail_user_token)
+        self._testrail_url = testrail_base_url
+        self._update_section_ids()
+        self._current_repo_existing_cases = {}
+        self._issues = []
+        self._build_issue_refs = []
+
+    def _update_section_ids(self):
+        section_response = requests.get(
+            f"{self._testrail_url}/index.php?/api/v2/get_sections/{self.PROJECT_ID}&suite_id={self.SUITE_ID}",
+            auth=self._basic_auth,
+            headers={"content-type": "application/json"},
+            verify=False,
+        )
+        # depending on testrail version
+        section_response_json = section_response.json()
+        # if true for testrail version 8
+        section_list = (
+            section_response_json["sections"] if "sections" in section_response.json() else section_response_json
+        )
+        self._sections = {s["name"]: s["id"] for s in section_list}
+
+    def create(self, repos):
+        """Create."""
+        for _repo in self.available_repos():
+            if not repos or _repo.name in repos:
+                self.add_repo(_repo)
+
+        # print test ref for test coverage
+        print(
+            "Kep this list of github ticket references to create the coverage report, using the summary of references:"
+        )
+        print("\n".join(self._build_issue_refs))
+
+        df = pd.DataFrame.from_dict(self._issues)
+        df.to_csv(self._filename)
+
+    def _extract_acceptance_criteria(self, body: str):
+        issue_body_sections = body.split("\n## ")
+        for section in issue_body_sections:
+            if section.startswith("⚖️ Acceptance Criteria\r\n") or section.startswith("Acceptance Criteria\r\n"):
+                return section.replace("⚖️ Acceptance Criteria\r\n", "")
+
+        raise NoAcceptanceCriteriaFoundError()
+
+    @staticmethod
+    def _to_csv_issue(self, issue):
+        """Developed for testmo."""
+        issue_dict = issue.as_dict()
+        issue_dict["Folder"] = issue_dict["repository_url"].split("/")[-1]
+        issue_dict["Tags"] = ",".join([label["name"] for label in issue_dict["labels"]])
+        issue_dict["Name"] = issue_dict["title"]
+        issue_dict["Description"] = issue_dict["html_url"] + "\n"
+        try:
+            issue_dict["Description"] += self._extract_acceptance_criteria(issue_dict["body"])
+            issue_dict["State"] = "ready"
+        except NoAcceptanceCriteriaFoundError:
+            issue_dict["State"] = "draft"
+
+        return issue_dict
+
+    def _keep_as_test_case_label(self, label: str):
+        for regex in self.TEST_CASE_REFS_REGEX:
+            if re.match(regex, label):
+                return True
+        return False
+
+    def _post_test_case(self, issue_ref, acn, test_case: dict, repo_name):
+        case_ref = f"{issue_ref}-AC{acn}"
+        if case_ref in self._current_repo_existing_cases:
+            # update
+            case_id = self._current_repo_existing_cases[case_ref]
+            url = f"{self._testrail_url}/index.php?/api/v2/update_case/{case_id}"
+        else:
+            # create
+            url = f"{self._testrail_url}/index.php?/api/v2/add_case/{self._sections[repo_name]}"
+
+        resp = requests.post(
+            url, json=test_case, auth=self._basic_auth, headers={"content-type": "application/json"}, verify=False
+        )
+        _logger.debug("new test case created or updated %s with status %s", test_case["title"], resp.status_code)
+
+    def _to_testrail_test_case(self, issue, repo_name):
+        test_case = {}
+        test_case["title"] = issue.title
+        test_case["template_id"] = 1
+        test_case["type_id"] = 1
+        test_case["priority_id"] = 1
+        test_case_labels = [label.name for label in issue.original_labels if self._keep_as_test_case_label(label.name)]
+        url_split = issue.url.split("/")
+        issue_ref = f"{url_split[-3]}#{url_split[-1]}"
+        # keep the list to be printing
+        self._build_issue_refs.append(issue_ref)
+        test_case_labels.append(issue_ref)
+        acn = 0
+
+        try:
+            acceptance_criteria_str = self._extract_acceptance_criteria(issue.body)
+            acceptance_criteria_split = acceptance_criteria_str.split("\r\n")
+            acceptance_criteria = {}
+            for assertion in acceptance_criteria_split:
+                if assertion.startswith("**Given**") or assertion.startswith("**When I perform**"):
+                    if "custom_steps" not in acceptance_criteria:
+                        acceptance_criteria["custom_steps"] = ""
+                    acceptance_criteria["custom_steps"] += assertion + "\n"
+                elif assertion.startswith("**Then I expect**"):
+                    acceptance_criteria["custom_expected"] = assertion + "\n"
+                elif "automation ID:" in assertion:
+                    automation_id = assertion.strip("_()\n").replace("automation ID:", "").strip()
+                    acceptance_criteria["custom_automation_id"] = automation_id
+                elif acceptance_criteria:
+                    test_case_labels.append(f"AC{acn}")
+                    test_case_labels.append("valid")
+                    test_case.update(acceptance_criteria)
+                    test_case["refs"] = ",".join(test_case_labels)
+                    self._post_test_case(issue_ref, acn, test_case, repo_name)
+
+                    acn += 1
+                    del test_case_labels[-2:]
+                    acceptance_criteria = {}
+
+        except NoAcceptanceCriteriaFoundError:
+            test_case_labels.append(f"AC{acn}")
+            test_case_labels.append("draft")
+            acceptance_criteria = {"custom_steps": "", "custom_expected": "", "refs": ",".join(test_case_labels)}
+            test_case.update(acceptance_criteria)
+            self._post_test_case(issue_ref, acn, test_case, repo_name)
+
+    def add_repo(self, repo):
+        """Process a repository. Add test cases."""
+        if repo.name not in self._sections.keys():
+            # new repository, new section
+            new_section = dict(suite_id=self.SUITE_ID, name=repo.name, description=repo.description)
+            _ = requests.post(
+                f"{self._testrail_url}/index.php?/api/v2/add_section/{self.PROJECT_ID}",
+                json=new_section,
+                auth=self._basic_auth,
+                headers={"content-type": "application/json"},
+                verify=False,
+            )
+            self._update_section_ids()
+        else:
+            # get existing test cases
+            cases_resp = requests.get(
+                f"{self._testrail_url}/index.php?/api/v2/get_cases/{self.PROJECT_ID}&suite_id={self.SUITE_ID}&section_id={self._sections[repo.name]}",
+                auth=self._basic_auth,
+                headers={"content-type": "application/json"},
+                verify=False,
+            )
+            cases_json = cases_resp.json()
+            # if true for testrail version 8
+            cases = cases_json["cases"] if "cases" in cases_json else cases_json
+            for case in cases:
+                refs = case["refs"].split(",")
+                issue_ref = [ref for ref in refs if "#" in ref][0]
+                self._logger.debug("looking at the pre-existing issue ref %s", issue_ref)
+                ac_ref = [ref for ref in refs if ref.startswith("AC")][0]
+                self._current_repo_existing_cases[f"{issue_ref}-{ac_ref}"] = case["id"]
+
+        for short_issue in repo.issues(state="closed", labels=self._build, direction="asc"):
+            compare_date = short_issue.closed_at
+            ignored_labels = RstRddReport.IGNORED_LABELS
+            ignored_labels.add("i&t.skipped")
+            if (
+                not ignore_issue(short_issue.labels(), ignore_labels=RstRddReport.IGNORED_LABELS)
+                and (self._end_time is None or compare_date < datetime.fromisoformat(self._end_time))
+                and (self._start_time is None or compare_date > datetime.fromisoformat(self._start_time))
+            ):
+                full_issue = repo.issue(short_issue.number)
+                self._to_testrail_test_case(full_issue, repo.name)
+                # issue_dict = self._to_csv_issue(issue)
+                # self._issues.append(issue_dict)
+
+        self._current_repo_existing_cases = {}

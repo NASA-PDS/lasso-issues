@@ -6,6 +6,7 @@ from datetime import datetime
 
 from lasso.issues.argparse import add_standard_arguments
 from lasso.issues.github import GithubConnection
+from lasso.issues.issues import CsvTestCaseReport
 from lasso.issues.issues import MetricsRddReport
 from lasso.issues.issues import RstRddReport
 from lasso.issues.issues.utils import get_issue_priority
@@ -112,6 +113,10 @@ def main():
 
     parser.add_argument("--report", default="planning", help="planning or known_bugs, only applies when --format=md")
 
+    parser.add_argument("--testrail-url", help="URL of testrail")
+    parser.add_argument("--testrail-user-email", help="email used to authenticate the user of testrail API")
+    parser.add_argument("--testrail-user-token", help="token used to authenticate the user to the testrail API")
+
     parser.add_argument(
         "--loglevel",
         choices=["DEBUG", "INFO", "WARN", "ERROR", "CRITICAL"],
@@ -147,6 +152,19 @@ def main():
         )
 
         rdd_metrics.create(args.github_repos)
+
+    elif args.format == "csv":
+        csv_report = CsvTestCaseReport(
+            args.github_org,
+            start_time=args.start_time,
+            end_time=args.end_time,
+            build=args.build,
+            token=args.token,
+            testrail_base_url=args.testrail_url,
+            testrail_user_email=args.testrail_user_email,
+            testrail_user_token=args.testrail_user_token,
+        )
+        csv_report.create(args.github_repos)
 
     else:
         _logger.error("unsupported format %s, must be rst or md or metrics", args.format)
