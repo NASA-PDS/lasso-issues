@@ -936,10 +936,11 @@ class CsvTestCaseReport(RddReport):
         df.to_csv(self._filename)
 
     def _extract_acceptance_criteria(self, body: str):
-        issue_body_sections = body.split("\n## ")
-        for section in issue_body_sections:
-            if section.startswith("⚖️ Acceptance Criteria\r\n") or section.startswith("Acceptance Criteria\r\n"):
-                return section.replace("⚖️ Acceptance Criteria\r\n", "")
+        if body is not None:
+            issue_body_sections = body.split("\n## ")
+            for section in issue_body_sections:
+                if section.startswith("⚖️ Acceptance Criteria\r\n") or section.startswith("Acceptance Criteria\r\n"):
+                    return section.replace("⚖️ Acceptance Criteria\r\n", "")
 
         raise NoAcceptanceCriteriaFoundError()
 
