@@ -937,7 +937,7 @@ class CsvTestCaseReport(RddReport):
 
     def _extract_acceptance_criteria(self, body: str):
         if body is not None:
-            issue_body_sections = body.split("\n## ")
+            issue_body_sections = re.split(r"\n#+\s", body)
             for section in issue_body_sections:
                 if section.startswith("⚖️ Acceptance Criteria\r\n") or section.startswith("Acceptance Criteria\r\n"):
                     return section.replace("⚖️ Acceptance Criteria\r\n", "")
