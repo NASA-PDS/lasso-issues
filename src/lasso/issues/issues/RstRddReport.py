@@ -939,8 +939,9 @@ class CsvTestCaseReport(RddReport):
         if body is not None:
             issue_body_sections = re.split(r"\n#+\s", body)
             for section in issue_body_sections:
-                if section.startswith("⚖️ Acceptance Criteria\r\n") or section.startswith("Acceptance Criteria\r\n"):
-                    return section.replace("⚖️ Acceptance Criteria\r\n", "")
+                if section.startswith("⚖️ Acceptance Criteria") or section.startswith("Acceptance Criteria"):
+                    section_without_header = section.split("\n", 1)[1].lstrip()
+                    return section_without_header
 
         raise NoAcceptanceCriteriaFoundError()
 
@@ -997,9 +998,10 @@ class CsvTestCaseReport(RddReport):
 
         try:
             acceptance_criteria_str = self._extract_acceptance_criteria(issue.body)
-            acceptance_criteria_split = acceptance_criteria_str.split("\r\n")
+            acceptance_criteria_split = acceptance_criteria_str.split("\n")
             acceptance_criteria = {}
             for assertion in acceptance_criteria_split:
+                # NOTE: currently doesn't account for assertion statements with newlines
                 if assertion.startswith("**Given**") or assertion.startswith("**When I perform**"):
                     if "custom_steps" not in acceptance_criteria:
                         acceptance_criteria["custom_steps"] = ""
