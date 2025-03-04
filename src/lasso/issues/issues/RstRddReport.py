@@ -876,7 +876,7 @@ class CsvTestCaseReport(RddReport):
     # TODO make that an argument
     PROJECT_ID = 168
     # TODO make that an argument
-    SUITE_ID = 33253
+    SUITE_ID = 33851
 
     def __init__(
         self,
