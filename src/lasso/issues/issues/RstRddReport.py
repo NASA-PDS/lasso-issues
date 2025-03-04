@@ -1064,7 +1064,7 @@ class CsvTestCaseReport(RddReport):
         for short_issue in repo.issues(state="closed", labels=self._build, direction="asc"):
             compare_date = short_issue.closed_at
             ignored_labels = RstRddReport.IGNORED_LABELS
-            ignored_labels.add("i&t.skipped")
+            ignored_labels.add("i&t.skip")
             if (
                 not ignore_issue(short_issue.labels(), ignore_labels=RstRddReport.IGNORED_LABELS)
                 and (self._end_time is None or compare_date < datetime.fromisoformat(self._end_time))
