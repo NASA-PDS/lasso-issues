@@ -988,6 +988,7 @@ class CsvTestCaseReport(RddReport):
         test_case["template_id"] = 1
         test_case["type_id"] = 1
         test_case["priority_id"] = 1
+        readable_issue_url = issue.url.replace("api.", "").replace("/repos", "")
         test_case_labels = [label.name for label in issue.original_labels if self._keep_as_test_case_label(label.name)]
         url_split = issue.url.split("/")
         issue_ref = f"{url_split[-3]}#{url_split[-1]}"
@@ -1004,7 +1005,7 @@ class CsvTestCaseReport(RddReport):
                 # NOTE: currently doesn't account for assertion statements with newlines
                 if assertion.startswith("**Given**") or assertion.startswith("**When I perform**"):
                     if "custom_steps" not in acceptance_criteria:
-                        acceptance_criteria["custom_steps"] = ""
+                        acceptance_criteria["custom_steps"] = readable_issue_url + "\n\n"
                     acceptance_criteria["custom_steps"] += assertion + "\n"
                 elif assertion.startswith("**Then I expect**"):
                     acceptance_criteria["custom_expected"] = assertion + "\n"
@@ -1025,7 +1026,7 @@ class CsvTestCaseReport(RddReport):
         except NoAcceptanceCriteriaFoundError:
             test_case_labels.append(f"AC{acn}")
             test_case_labels.append("draft")
-            acceptance_criteria = {"custom_steps": "", "custom_expected": "", "refs": ",".join(test_case_labels)}
+            acceptance_criteria = {"custom_steps": readable_issue_url, "custom_expected": "", "refs": ",".join(test_case_labels)}
             test_case.update(acceptance_criteria)
             self._post_test_case(issue_ref, acn, test_case, repo_name)
 
