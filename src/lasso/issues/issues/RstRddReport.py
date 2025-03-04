@@ -876,7 +876,7 @@ class CsvTestCaseReport(RddReport):
     # TODO make that an argument
     PROJECT_ID = 168
     # TODO make that an argument
-    SUITE_ID = 33851
+    SUITE_ID = 33253
 
     def __init__(
         self,
@@ -968,6 +968,7 @@ class CsvTestCaseReport(RddReport):
         return False
 
     def _post_test_case(self, issue_ref, acn, test_case: dict, repo_name):
+        self._logger.info("Posting to TestRail: %s-AC%s", issue_ref, acn)
         case_ref = f"{issue_ref}-AC{acn}"
         if case_ref in self._current_repo_existing_cases:
             # update
