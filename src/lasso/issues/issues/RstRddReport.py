@@ -872,7 +872,7 @@ class NoAcceptanceCriteriaFoundError(Exception):
 class CsvTestCaseReport(RddReport):
     """Report as test cases importable in test management software. Used with testrail."""
 
-    TEST_CASE_REFS_REGEX = ["B[0-9][0-9]\.[0-9]", "s\..*", "p\..*", "requirement", "bug", "i&t.automated", "i&t.done"]  # noqa
+    TEST_CASE_REFS_REGEX = ["B[0-9][0-9]\.[0-9]", "s\..*", "p\..*", "requirement", "bug", "i&t.automated"]  # noqa
     # TODO make that an argument
     PROJECT_ID = 168
     # TODO make that an argument
