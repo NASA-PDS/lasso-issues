@@ -22,6 +22,7 @@ from zenhub.exceptions import NotFoundError
 from .utils import get_issue_priority
 from .utils import has_label
 from .utils import ignore_issue
+from .utils import issue_is_pull_request
 
 
 _logger = logging.getLogger(__name__)
@@ -1070,6 +1071,7 @@ class CsvTestCaseReport(RddReport):
                 not ignore_issue(short_issue.labels(), ignore_labels=RstRddReport.IGNORED_LABELS)
                 and (self._end_time is None or compare_date < datetime.fromisoformat(self._end_time))
                 and (self._start_time is None or compare_date > datetime.fromisoformat(self._start_time))
+                and not issue_is_pull_request(short_issue.number, short_issue.pull_request())
             ):
                 full_issue = repo.issue(short_issue.number)
                 self._to_testrail_test_case(full_issue, repo.name)

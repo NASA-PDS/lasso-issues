@@ -75,3 +75,22 @@ def is_theme(labels, zen_issue):
     if zen_issue["is_epic"]:
         if "theme" in labels:
             return True
+
+def issue_is_pull_request(issue_number, pull_request):
+    """Check If Issue Is A Pull Request.
+
+    Use the input ShortIssue object's number and its associated Pull Request object.
+    If the PR object exists and its number is the same as the issue's number, the issue is a pull request.
+
+    https://github3.readthedocs.io/en/latest/api-reference/issues.html#github3.issues.issue.ShortIssue.pull_request
+    https://github3.readthedocs.io/en/latest/api-reference/pulls.html#github3.pulls.ShortPullRequest.number
+
+    NOTE: use `number` attribute instead of `id` because all IDs are unique, so they will differ
+    """
+    if pull_request is not None:
+        if issue_number == pull_request.number:
+            return True
+        else:
+            return False
+    else:
+        return False
