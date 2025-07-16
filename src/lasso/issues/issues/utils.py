@@ -1,4 +1,5 @@
 """Utilities."""
+
 ISSUE_TYPES = ["bug", "enhancement", "requirement", "theme"]
 TOP_PRIORITIES = ["p.must-have", "s.high", "s.critical"]
 IGNORE_LABELS = ["wontfix", "duplicate", "invalid"]

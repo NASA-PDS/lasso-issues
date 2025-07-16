@@ -1,4 +1,4 @@
 """Lasso Issues."""
-import pkg_resources
+import importlib
 
-__version__ = VERSION = pkg_resources.resource_string(__name__, "VERSION.txt").decode("utf-8").strip()
+__version__ = importlib.resources.files(__name__).joinpath("VERSION.txt").read_text().strip()
