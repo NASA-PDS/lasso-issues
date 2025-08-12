@@ -1028,7 +1028,11 @@ class CsvTestCaseReport(RddReport):
         except NoAcceptanceCriteriaFoundError:
             test_case_labels.append(f"AC{acn}")
             test_case_labels.append("draft")
-            acceptance_criteria = {"custom_steps": readable_issue_url, "custom_expected": "", "refs": ",".join(test_case_labels)}
+            acceptance_criteria = {
+                "custom_steps": readable_issue_url,
+                "custom_expected": "",
+                "refs": ",".join(test_case_labels),
+            }
             test_case.update(acceptance_criteria)
             self._post_test_case(issue_ref, acn, test_case, repo_name)
 
