@@ -77,6 +77,7 @@ def is_theme(labels, zen_issue):
         if "theme" in labels:
             return True
 
+
 def issue_is_pull_request(issue_number, pull_request):
     """Check If Issue Is A Pull Request.
 
