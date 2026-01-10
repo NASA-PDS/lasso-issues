@@ -16,7 +16,6 @@ from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
-
 from lasso.issues.argparse import add_standard_arguments
 
 logger = logging.getLogger(__name__)
@@ -319,9 +318,9 @@ def set_project_field(project_node_id, item_id, field_name, field_value):
               }
             }
             """
-            logger.debug(f"GraphQL mutation params: projectId={project_node_id}, " +
-                         f"itemId={item_id}, fieldId={field_id}, " +
-                         f"value={field_value}")
+            logger.debug(f"GraphQL mutation params: projectId={project_node_id}, "
+                         + f"itemId={item_id}, fieldId={field_id}, "
+                         + f"value={field_value}")
             result = run_gh_command(
                 [
                     "api", "graphql",
@@ -333,9 +332,9 @@ def set_project_field(project_node_id, item_id, field_name, field_value):
                 ],
                 check=False
             )
-            logger.debug(f"GraphQL response code: {result.returncode}, " +
-                         f"stdout: {result.stdout[:200]}, " +
-                         f"stderr: {result.stderr[:200]}")
+            logger.debug(f"GraphQL response code: {result.returncode}, "
+                         + f"stdout: {result.stdout[:200]}, "
+                         + f"stderr: {result.stderr[:200]}")
         else:
             # For text fields
             mutation = """

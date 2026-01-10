@@ -1,19 +1,17 @@
 """Tests for create_release_themes module."""
 import json
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
+from unittest.mock import patch
 
 import pandas as pd
-
-from lasso.issues.issues.create_release_themes import (
-    check_issue_exists,
-    create_issue_body,
-    create_release_theme,
-    ensure_label_exists,
-    find_project_id,
-    parse_date,
-    run_gh_command,
-)
+from lasso.issues.issues.create_release_themes import check_issue_exists
+from lasso.issues.issues.create_release_themes import create_issue_body
+from lasso.issues.issues.create_release_themes import create_release_theme
+from lasso.issues.issues.create_release_themes import ensure_label_exists
+from lasso.issues.issues.create_release_themes import find_project_id
+from lasso.issues.issues.create_release_themes import parse_date
+from lasso.issues.issues.create_release_themes import run_gh_command
 
 
 class TestParseDate(unittest.TestCase):
