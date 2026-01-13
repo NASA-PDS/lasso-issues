@@ -146,7 +146,6 @@ def check_issue_exists(repo, title):
         logger.warning(f"Failed to search for existing issues in {repo}: {result.stderr}")
         return False
 
-    import json
     try:
         issues = json.loads(result.stdout)
         for issue in issues:
@@ -180,7 +179,6 @@ def find_project_id(project_name):
         logger.error(f"Failed to list projects: {result.stderr}")
         return None, None
 
-    import json
     try:
         projects = json.loads(result.stdout)
         for project in projects.get("projects", []):
@@ -209,8 +207,6 @@ def set_project_field(project_node_id, item_id, field_name, field_value):
     Returns:
         bool: True if successful, False otherwise
     """
-    import json
-
     # First, get the project fields to find the field ID
     query = """
     query($projectId: ID!) {
