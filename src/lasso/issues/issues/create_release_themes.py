@@ -9,6 +9,7 @@ for each theme in the specified repositories. It handles:
 - Setting project metadata (Product, Start Date, End Date)
 """
 import argparse
+import json
 import logging
 import subprocess
 import sys
@@ -22,17 +23,17 @@ logger = logging.getLogger(__name__)
 
 
 def parse_date(date_str):
-    """Parse date from MM/DD/YY format to YYYY-MM-DD ISO format.
+    """Parse date from YYYY-MM-DD ISO format and validate.
 
     Args:
-        date_str: Date string in MM/DD/YY format (e.g., '9/5/25')
+        date_str: Date string in YYYY-MM-DD format (e.g., '2025-09-05')
 
     Returns:
         str: ISO formatted date string (YYYY-MM-DD)
     """
     try:
-        # Parse MM/DD/YY format, assume 20xx for years < 100
-        dt = datetime.strptime(date_str, "%m/%d/%y")
+        # Parse YYYY-MM-DD format and validate
+        dt = datetime.strptime(date_str, "%Y-%m-%d")
         return dt.strftime("%Y-%m-%d")
     except ValueError as e:
         logger.error(f"Failed to parse date '{date_str}': {e}")
@@ -385,8 +386,6 @@ def get_project_item_id(issue_url, project_node_id):
     Returns:
         str: Project item ID or None if not found
     """
-    import json
-
     # Extract owner, repo, and issue number from URL
     # Format: https://github.com/NASA-PDS/repo-name/issues/123
     parts = issue_url.rstrip("/").split("/")

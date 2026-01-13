@@ -52,8 +52,8 @@ pds-scheduler-themes --csv-file schedule.csv --build-number 17 --debug
 The CSV file should contain these columns:
 - **Title**: Issue title (will be prefixed with build number, e.g., "B17 Release Planning")
 - **Repo**: Repository name in format `NASA-PDS/repo-name`
-- **Start Date**: Start date in MM/DD/YY format (e.g., "9/5/25")
-- **End Date**: End date in MM/DD/YY format (e.g., "10/16/25")
+- **Start Date**: Start date in YYYY-MM-DD format (e.g., "2025-09-05")
+- **End Date**: End date in YYYY-MM-DD format (e.g., "2025-10-16")
 - **Description**: Issue description text
 - **Checklist**: Semicolon-delimited checklist items (e.g., "Task 1;Task 2;Task 3")
 - **GitHub Project Product**: Product name for project metadata (optional)
