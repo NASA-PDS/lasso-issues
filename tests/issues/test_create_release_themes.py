@@ -18,26 +18,26 @@ class TestParseDate(unittest.TestCase):
     """Test date parsing functionality."""
 
     def test_parse_date_valid(self):
-        """Test parsing valid MM/DD/YY dates."""
-        self.assertEqual(parse_date("9/5/25"), "2025-09-05")
-        self.assertEqual(parse_date("10/16/25"), "2025-10-16")
-        self.assertEqual(parse_date("3/12/26"), "2026-03-12")
-        self.assertEqual(parse_date("12/31/30"), "2030-12-31")
+        """Test parsing valid YYYY-MM-DD dates."""
+        self.assertEqual(parse_date("2025-09-05"), "2025-09-05")
+        self.assertEqual(parse_date("2025-10-16"), "2025-10-16")
+        self.assertEqual(parse_date("2026-03-12"), "2026-03-12")
+        self.assertEqual(parse_date("2030-12-31"), "2030-12-31")
 
     def test_parse_date_single_digit(self):
         """Test parsing dates with single digit month/day."""
-        self.assertEqual(parse_date("1/1/25"), "2025-01-01")
-        self.assertEqual(parse_date("1/15/25"), "2025-01-15")
-        self.assertEqual(parse_date("9/5/25"), "2025-09-05")
+        self.assertEqual(parse_date("2025-01-01"), "2025-01-01")
+        self.assertEqual(parse_date("2025-01-15"), "2025-01-15")
+        self.assertEqual(parse_date("2025-09-05"), "2025-09-05")
 
     def test_parse_date_invalid_format(self):
         """Test parsing invalid date formats raises ValueError."""
         with self.assertRaises(ValueError):
-            parse_date("2025-09-05")  # Wrong format
+            parse_date("9/5/25")  # Old MM/DD/YY format
         with self.assertRaises(ValueError):
             parse_date("invalid")
         with self.assertRaises(ValueError):
-            parse_date("13/32/25")  # Invalid date
+            parse_date("2025-13-32")  # Invalid date
 
 
 class TestCreateIssueBody(unittest.TestCase):
@@ -317,8 +317,8 @@ class TestCreateReleaseTheme(unittest.TestCase):
         self.test_row = pd.Series({
             "Title": "Release Planning",
             "Repo": "NASA-PDS/test-repo",
-            "Start Date": "9/5/25",
-            "End Date": "10/16/25",
+            "Start Date": "2025-09-05",
+            "End Date": "2025-10-16",
             "Description": "Test description",
             "Checklist": "Task 1;Task 2",
             "GitHub Project Product": "System Engineering"
