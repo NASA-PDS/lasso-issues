@@ -1,5 +1,13 @@
 # Changelog
 
+## [«unknown»](https://github.com/NASA-PDS/lasso-issues/tree/«unknown») (2026-01-14)
+
+[Full Changelog](https://github.com/NASA-PDS/lasso-issues/compare/v2.0.0...«unknown»)
+
+**Requirements:**
+
+- As a user, I want to automate creation of release theme issues from CSV schedules [\#41](https://github.com/NASA-PDS/lasso-issues/issues/41)
+
 ## [v2.0.0](https://github.com/NASA-PDS/lasso-issues/tree/v2.0.0) (2025-12-16)
 
 [Full Changelog](https://github.com/NASA-PDS/lasso-issues/compare/v1.3.1...v2.0.0)
