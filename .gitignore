@@ -32,6 +32,7 @@
 
 # Python build, virtual environments, and buildouts
 .venv
+.env
 venv
 __pycache__/
 dist/
