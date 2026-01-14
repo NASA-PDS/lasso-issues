@@ -5,7 +5,8 @@
 ---
 
 name: 🔁 Branch integration testing
-
+permissions:
+    contents: read
 
 # Driving Event
 # -------------
