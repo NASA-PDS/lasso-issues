@@ -639,7 +639,7 @@ def main():
     parser.add_argument(
         "--group-by-component",
         action="store_true",
-        help="Group repositories by product/component from conf/pds-products.yaml (only applies when --format=md)"
+        help="Group repositories by product/component from conf/pds-products.yaml (applies to --format=md and --format=rst)"
     )
 
     parser.add_argument(
@@ -679,7 +679,12 @@ def main():
 
     elif args.format == "rst":
         rst_rdd_report = RstRddReport(
-            args.github_org, start_time=args.start_time, end_time=args.end_time, build=args.build, token=args.token
+            args.github_org,
+            start_time=args.start_time,
+            end_time=args.end_time,
+            build=args.build,
+            token=args.token,
+            group_by_component=args.group_by_component,
         )
 
         rst_rdd_report.create(args.github_repos)

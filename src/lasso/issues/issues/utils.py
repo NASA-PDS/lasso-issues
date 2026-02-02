@@ -1,4 +1,10 @@
 """Utilities."""
+import logging
+import os
+
+import yaml
+
+_logger = logging.getLogger(__name__)
 
 ISSUE_TYPES = ["bug", "enhancement", "requirement", "theme", "task"]
 TOP_PRIORITIES = ["p.must-have", "s.high", "s.critical"]
@@ -259,3 +265,59 @@ def issue_is_pull_request(issue_number, pull_request):
             return False
     else:
         return False
+
+
+def load_products_config(config_path=None):
+    """Load PDS products configuration from YAML file.
+
+    Args:
+        config_path: Path to the config file. If None, tries conf/pds-products.yaml
+                     relative to the current working directory.
+
+    Returns:
+        dict: Products configuration, or None if not found or invalid.
+    """
+    if config_path is None:
+        config_path = os.path.join(os.getcwd(), "conf", "pds-products.yaml")
+
+    if not os.path.exists(config_path):
+        _logger.warning("Products config file not found: %s", config_path)
+        return None
+
+    try:
+        with open(config_path) as f:
+            config = yaml.safe_load(f)
+            if config and "products" in config:
+                return config
+            else:
+                _logger.warning("Invalid products config: missing 'products' key")
+                return None
+    except Exception as e:
+        _logger.warning("Error loading products config: %s", e)
+        return None
+
+
+def build_repo_to_product_map(products_config):
+    """Build mapping from repo name to product name and info.
+
+    Args:
+        products_config: Products configuration dict from load_products_config()
+
+    Returns:
+        dict: {repo_name: (product_name, product_info)} where product_info includes
+              description, github_project_name, etc.
+    """
+    if not products_config or "products" not in products_config:
+        return {}
+
+    repo_to_product = {}
+    for product_name, product_info in products_config["products"].items():
+        # Skip ignored products
+        if product_info.get("ignore", False):
+            continue
+
+        repositories = product_info.get("repositories", [])
+        for repo_name in repositories:
+            repo_to_product[repo_name] = (product_name, product_info)
+
+    return repo_to_product
