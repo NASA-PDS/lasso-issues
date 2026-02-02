@@ -3,9 +3,7 @@
 Now if only someone could define "Rdd"! 😆
 """
 import logging
-import os
 import re
-import sys
 import types
 from datetime import datetime
 from enum import Enum
@@ -15,9 +13,8 @@ import requests
 import rstcloth
 from github3.issues.issue import Issue
 from github3.issues.issue import ShortIssue
+from lasso.issues.github import get_sub_issues
 from lasso.issues.github import GithubConnection
-from zenhub import Zenhub
-from zenhub.exceptions import NotFoundError
 
 from .utils import get_issue_priority
 from .utils import has_label
@@ -355,15 +352,31 @@ class MetricsRddReport(RddReport):
 
 
 class EpicFactory:
-    """A factory of epics."""
+    """A factory of epics (themes with sub-issues)."""
 
-    def __init__(self, zenhub, logger):
-        """Initializer."""
-        self._zenhub = zenhub
+    def __init__(self, gh, org, logger):
+        """Initializer.
+
+        Args:
+            gh: GitHub connection object
+            org: Organization/owner name
+            logger: Logger instance
+        """
+        self._gh = gh
+        self._org = org
         self._logger = logger
 
     def create_enhancement(self, repo, gh_issue, build):
-        """Create enhancement."""
+        """Create enhancement.
+
+        Args:
+            repo: GitHub repository object
+            gh_issue: GitHub issue object
+            build: Build label to filter by
+
+        Returns:
+            Enhancement: The enhancement with any child issues attached
+        """
         self._logger.debug("Create enhancement for repo %s for issue %i", repo.name, gh_issue.number)
 
         enhancement = Enhancement(gh_issue, log=self._logger)
@@ -372,21 +385,20 @@ class EpicFactory:
             enhancement.type.value == EnhancementTypes.THEME.value
             or enhancement.type.value == EnhancementTypes.EPIC.value
         ):  # not leaf in the tree
-            self._logger.debug("search for epic children")
-            try:
-                epic_child_issues = self._zenhub.get_epic_data(repo.id, gh_issue.number)
-                self._logger.debug(epic_child_issues)
-                for issue in epic_child_issues["issues"]:
-                    if issue["repo_id"] == repo.id:
-                        self._logger.debug("github api request, get issue %i", issue["issue_number"])
-                        gh_child_issue = repo.issue(issue["issue_number"])
+            self._logger.debug("search for sub-issues using GitHub API")
+            sub_issues = get_sub_issues(self._gh, self._org, repo.name, gh_issue.number)
+            if sub_issues:
+                self._logger.debug("Found %d sub-issues", len(sub_issues))
+                for sub_issue_data in sub_issues:
+                    issue_number = sub_issue_data.get("number")
+                    if issue_number:
+                        self._logger.debug("github api request, get issue %i", issue_number)
+                        gh_child_issue = repo.issue(issue_number)
                         if has_label(gh_child_issue, build) and gh_child_issue.state == "closed":
                             enhancement_child = self.create_enhancement(repo, gh_child_issue, build)
                             enhancement.add_child(enhancement_child)
-            except NotFoundError:
-                self._logger.warning(
-                    "The theme %i is not a zenhub Epic, we cannot identify child tickets", gh_issue.number
-                )
+            else:
+                self._logger.debug("No sub-issues found for issue %i", gh_issue.number)
 
         return enhancement
 
@@ -442,8 +454,6 @@ class Enhancement(Issue):
 class RstRddReport(RddReport):
     """The reStructuredText format Rdd report."""
 
-    ZENHUB_TOKEN = "ZENHUB_TOKEN"
-
     def __init__(
         self, org, title=None, start_time=None, end_time=None, build=None, token=None, filename="pdsen_issues.rst"
     ):
@@ -456,13 +466,6 @@ class RstRddReport(RddReport):
         self._stream = open(filename, "w")
         self._rst_doc = RstClothReferenceable(self._stream, line_width=120)
         self._rst_doc.title(title)
-
-        if RstRddReport.ZENHUB_TOKEN not in os.environ.keys():
-            self._logger.error("missing %s environment variable", RstRddReport.ZENHUB_TOKEN)
-            sys.exit(1)
-
-        zenhub_token = os.environ.get("ZENHUB_TOKEN")
-        self._zenhub = Zenhub(zenhub_token)
 
     def _get_change_requests(self):
         """Get change requests."""
@@ -508,7 +511,9 @@ class RstRddReport(RddReport):
         theme_issues = repo.issues(state="closed", labels=",".join(labels), direction="asc")
         theme_trees = []
         for theme_issue in theme_issues:
-            theme = EpicFactory(self._zenhub, self._logger).create_enhancement(repo, theme_issue, self._target_build)
+            theme = EpicFactory(self._gh, self._org, self._logger).create_enhancement(
+                repo, theme_issue, self._target_build
+            )
             theme_trees.append(theme)
         return theme_trees
 
