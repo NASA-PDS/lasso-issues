@@ -6,6 +6,9 @@ import yaml
 
 _logger = logging.getLogger(__name__)
 
+# Common acronyms/abbreviations that should be uppercase
+ACRONYMS = {"pds", "pds4", "api", "doi", "im", "ldd", "mcp", "ui", "wp", "swg", "i&t"}
+
 ISSUE_TYPES = ["bug", "enhancement", "requirement", "theme", "task"]
 TOP_PRIORITIES = ["p.must-have", "s.high", "s.critical"]
 IGNORE_LABELS = ["wontfix", "duplicate", "invalid"]
@@ -265,6 +268,27 @@ def issue_is_pull_request(issue_number, pull_request):
             return False
     else:
         return False
+
+
+def format_component_name(name):
+    """Format a component name for display with proper title case and acronym handling.
+
+    Converts hyphenated names to title case while preserving common acronyms.
+
+    Args:
+        name: Component name (e.g., 'cloud-platform-engineering', 'pds4-information-model')
+
+    Returns:
+        str: Formatted name (e.g., 'Cloud Platform Engineering', 'PDS4 Information Model')
+    """
+    words = name.replace("-", " ").split()
+    formatted_words = []
+    for word in words:
+        if word.lower() in ACRONYMS:
+            formatted_words.append(word.upper())
+        else:
+            formatted_words.append(word.capitalize())
+    return " ".join(formatted_words)
 
 
 def load_products_config(config_path=None):

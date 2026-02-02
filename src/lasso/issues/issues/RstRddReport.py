@@ -17,6 +17,7 @@ from lasso.issues.github import get_sub_issues
 from lasso.issues.github import GithubConnection
 
 from .utils import build_repo_to_product_map
+from .utils import format_component_name
 from .utils import get_issue_priority
 from .utils import has_label
 from .utils import ignore_issue
@@ -394,8 +395,25 @@ class EpicFactory:
                 for sub_issue_data in sub_issues:
                     issue_number = sub_issue_data.get("number")
                     if issue_number:
+                        # Check if sub-issue is in the same repository
+                        sub_repo_url = sub_issue_data.get("repository_url", "")
+                        sub_repo_name = sub_repo_url.rstrip("/").split("/")[-1] if sub_repo_url else ""
+                        if sub_repo_name and sub_repo_name != repo.name:
+                            self._logger.debug(
+                                "Skipping sub-issue %i - it's in repo %s, not %s",
+                                issue_number,
+                                sub_repo_name,
+                                repo.name,
+                            )
+                            continue
                         self._logger.debug("github api request, get issue %i", issue_number)
-                        gh_child_issue = repo.issue(issue_number)
+                        try:
+                            gh_child_issue = repo.issue(issue_number)
+                        except Exception as e:
+                            self._logger.warning(
+                                "Failed to fetch issue %i from repo %s: %s", issue_number, repo.name, e
+                            )
+                            continue
                         if has_label(gh_child_issue, build) and gh_child_issue.state == "closed":
                             enhancement_child = self.create_enhancement(repo, gh_child_issue, build)
                             enhancement.add_child(enhancement_child)
@@ -897,7 +915,7 @@ class RstRddReport(RddReport):
 
                 self._rst_doc.content("--------")
                 self._rst_doc.newline()
-                self._rst_doc.h2(f"Component: {component_name.replace('-', ' ').title()}")
+                self._rst_doc.h2(f"Component: {format_component_name(component_name)}")
                 if component_desc:
                     self._rst_doc.content(f"*{component_desc}*")
                     self._rst_doc.newline()
@@ -1112,7 +1130,7 @@ class RstRddReport(RddReport):
             for component_name in sorted(self._component_metrics.keys()):
                 metrics = self._component_metrics[component_name]
                 data.append([
-                    f"**{component_name.replace('-', ' ').title()}**",
+                    f"**{format_component_name(component_name)}**",
                     str(metrics["bugs"]),
                     str(metrics["enhancements"]),
                     str(metrics["requirements"]),
