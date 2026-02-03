@@ -1,12 +1,13 @@
 # PDS Lasso Issues
 
-The PDS Lasso Issues package provides utilities handle issues on GitHub. It provides four commands:
+The PDS Lasso Issues package provides utilities handle issues on GitHub. It provides these commands:
 
 - `milestones`
 - `pds-issues`
 - `move-issues`
 - `pds-labels`
 - `add-version-label-to-open-bugs`
+- `pds-scheduler-themes`
 
 Please visit our website at: https://nasa-pds.github.io/lasso-issues
 
@@ -25,7 +26,7 @@ Install with:
     pip install lasso-issues
 
 
-To execute, run:
+### Using pds-scheduler-themes
 
 ### pds-issues
 
@@ -74,6 +75,52 @@ Migrate issues between repositories.
 ### pds-labels
 
 Bulk label management across organization repositories
+The `pds-scheduler-themes` command automates creation of release theme issues from CSV schedule files.
+
+**Prerequisites:**
+- GitHub CLI (`gh`) must be installed and authenticated
+- Write access to target NASA-PDS repositories
+
+**Basic Usage:**
+
+```bash
+# Preview what would be created (dry-run mode)
+pds-scheduler-themes --csv-file schedule.csv --build-number 17 --dry-run
+
+# Create the issues
+pds-scheduler-themes --csv-file schedule.csv --build-number 17
+
+# With debug logging
+pds-scheduler-themes --csv-file schedule.csv --build-number 17 --debug
+```
+
+**CSV Format:**
+
+The CSV file should contain these columns:
+- **Title**: Issue title (will be prefixed with build number, e.g., "B17 Release Planning")
+- **Repo**: Repository name in format `NASA-PDS/repo-name`
+- **Start Date**: Start date in YYYY-MM-DD format (e.g., "2025-09-05")
+- **End Date**: End date in YYYY-MM-DD format (e.g., "2025-10-16")
+- **Description**: Issue description text
+- **Checklist**: Semicolon-delimited checklist items (e.g., "Task 1;Task 2;Task 3")
+- **GitHub Project Product**: Product name for project metadata (optional)
+
+**Features:**
+- Automatically prefixes issue titles with build number (e.g., "B17")
+- Checks for duplicate issues and skips if already exists
+- Creates build labels (e.g., "B17") if they don't exist
+- Adds issues to NASA-PDS/6 project and build-specific projects
+- Applies labels: `theme`, `Epic`, `i&t.skip`, and build label
+- Converts checklist items to markdown checkboxes
+
+**Output:**
+
+The tool provides a summary showing:
+- ✓ Created issues with URLs
+- ⊙ Skipped issues (already exist)
+- ✗ Failed issues
+
+See `examples/b17_schedule_prep_spreadsheet.csv` for a sample CSV file.
 
 
 ## Code of Conduct
