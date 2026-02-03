@@ -7,6 +7,13 @@ for each theme in the specified repositories. It handles:
 - Applying build labels (e.g., B17, B18)
 - Adding issues to GitHub Projects
 - Setting project metadata (Product, Start Date, End Date)
+
+The Title column supports a $BUILD placeholder that will be replaced with the
+build label. If no $BUILD placeholder is present, the title is used as-is.
+
+Examples:
+    - "$BUILD Release Planning" with --build-number 17 -> "B17 Release Planning"
+    - "Infrastructure Upgrades" -> "Infrastructure Upgrades" (no change)
 """
 import argparse
 import json
@@ -447,6 +454,15 @@ def create_release_theme(row, build_number, dry_run=False):
 
     Returns:
         str: Issue URL if created, None if skipped or failed
+
+    Note:
+        The title field supports a $BUILD placeholder that will be replaced with
+        the build label (e.g., "B17"). If no $BUILD placeholder is present, the
+        title is used as-is without any build prefix.
+
+        Examples:
+            - "$BUILD Release Planning" -> "B17 Release Planning"
+            - "Infrastructure Upgrades" -> "Infrastructure Upgrades" (no change)
     """
     base_title = row["Title"]
     repo = row["Repo"]
@@ -462,7 +478,12 @@ def create_release_theme(row, build_number, dry_run=False):
 
     # Build label and full title with build prefix
     build_label = f"B{build_number}"
-    title = f"{build_label} {base_title}"
+
+    # Replace $BUILD placeholder if present, otherwise use title as-is
+    if "$BUILD" in base_title:
+        title = base_title.replace("$BUILD", build_label)
+    else:
+        title = base_title
 
     logger.info(f"Processing release theme: {title} in {repo}")
 
@@ -640,8 +661,14 @@ def main():
 
     for _, row in df.iterrows():
         try:
+            # Compute the actual title (same logic as create_release_theme)
+            base_title = row["Title"]
+            if "$BUILD" in base_title:
+                full_title = base_title.replace("$BUILD", build_label)
+            else:
+                full_title = base_title
+
             result = create_release_theme(row, args.build_number, args.dry_run)
-            full_title = f"{build_label} {row['Title']}"
             if result and result != "SKIPPED":
                 created_issues.append((full_title, result))
             elif result == "SKIPPED":
@@ -649,7 +676,11 @@ def main():
             else:
                 failed_issues.append(full_title)
         except Exception as e:
-            full_title = f"{build_label} {row['Title']}"
+            base_title = row["Title"]
+            if "$BUILD" in base_title:
+                full_title = base_title.replace("$BUILD", build_label)
+            else:
+                full_title = base_title
             logger.error(f"Error creating issue for '{full_title}': {e}")
             failed_issues.append(full_title)
 
