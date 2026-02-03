@@ -28,6 +28,53 @@ Install with:
 
 ### Using pds-scheduler-themes
 
+### pds-issues
+
+Generate issue reports in various formats (Markdown, RST, CSV).
+
+```bash
+# Set your GitHub token
+export GITHUB_TOKEN=your_token_here
+
+# Generate a Markdown planning report
+pds-issues --format=md --github-org=NASA-PDS
+
+# Generate an RST Release Description Document (RDD)
+pds-issues --format=rst --build=B15.1 --github-org=NASA-PDS
+
+# Generate an RST RDD with component grouping (groups repos by product)
+pds-issues --format=rst --build=B15.1 --github-org=NASA-PDS --group-by-component
+
+# Generate for specific repositories only
+pds-issues --format=rst --build=B15.1 --github-org=NASA-PDS --github-repos validate registry
+```
+
+#### Component Grouping
+
+When using `--group-by-component`, repositories are grouped by their product/component as defined in `conf/pds-products.yaml`. This produces a hierarchical document structure:
+
+- **Component sections** (H2) containing related repositories
+- **Repository sections** (H3) with their issues
+- **Summary metrics table** at the end showing issue counts by component
+
+#### Output Formats
+
+- `--format=md`: Markdown planning or known bugs report
+- `--format=rst`: reStructuredText Release Description Document with theme trees
+- `--format=metrics`: Summary metrics output
+- `--format=csv`: CSV export for test management (TestRail integration)
+
+### milestones
+
+Manage GitHub milestones across repositories.
+
+### move-issues
+
+Migrate issues between repositories.
+
+### pds-labels
+
+Bulk label management across organization repositories
 The `pds-scheduler-themes` command automates creation of release theme issues from CSV schedule files.
 
 **Prerequisites:**

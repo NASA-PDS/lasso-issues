@@ -3,9 +3,7 @@
 Now if only someone could define "Rdd"! 😆
 """
 import logging
-import os
 import re
-import sys
 import types
 from datetime import datetime
 from enum import Enum
@@ -15,14 +13,16 @@ import requests
 import rstcloth
 from github3.issues.issue import Issue
 from github3.issues.issue import ShortIssue
+from lasso.issues.github import get_sub_issues
 from lasso.issues.github import GithubConnection
-from zenhub import Zenhub
-from zenhub.exceptions import NotFoundError
 
+from .utils import build_repo_to_product_map
+from .utils import format_component_name
 from .utils import get_issue_priority
 from .utils import has_label
 from .utils import ignore_issue
 from .utils import issue_is_pull_request
+from .utils import load_products_config
 
 
 _logger = logging.getLogger(__name__)
@@ -355,15 +355,31 @@ class MetricsRddReport(RddReport):
 
 
 class EpicFactory:
-    """A factory of epics."""
+    """A factory of epics (themes with sub-issues)."""
 
-    def __init__(self, zenhub, logger):
-        """Initializer."""
-        self._zenhub = zenhub
+    def __init__(self, gh, org, logger):
+        """Initializer.
+
+        Args:
+            gh: GitHub connection object
+            org: Organization/owner name
+            logger: Logger instance
+        """
+        self._gh = gh
+        self._org = org
         self._logger = logger
 
     def create_enhancement(self, repo, gh_issue, build):
-        """Create enhancement."""
+        """Create enhancement.
+
+        Args:
+            repo: GitHub repository object
+            gh_issue: GitHub issue object
+            build: Build label to filter by
+
+        Returns:
+            Enhancement: The enhancement with any child issues attached
+        """
         self._logger.debug("Create enhancement for repo %s for issue %i", repo.name, gh_issue.number)
 
         enhancement = Enhancement(gh_issue, log=self._logger)
@@ -372,21 +388,37 @@ class EpicFactory:
             enhancement.type.value == EnhancementTypes.THEME.value
             or enhancement.type.value == EnhancementTypes.EPIC.value
         ):  # not leaf in the tree
-            self._logger.debug("search for epic children")
-            try:
-                epic_child_issues = self._zenhub.get_epic_data(repo.id, gh_issue.number)
-                self._logger.debug(epic_child_issues)
-                for issue in epic_child_issues["issues"]:
-                    if issue["repo_id"] == repo.id:
-                        self._logger.debug("github api request, get issue %i", issue["issue_number"])
-                        gh_child_issue = repo.issue(issue["issue_number"])
+            self._logger.debug("search for sub-issues using GitHub API")
+            sub_issues = get_sub_issues(self._gh, self._org, repo.name, gh_issue.number)
+            if sub_issues:
+                self._logger.debug("Found %d sub-issues", len(sub_issues))
+                for sub_issue_data in sub_issues:
+                    issue_number = sub_issue_data.get("number")
+                    if issue_number:
+                        # Check if sub-issue is in the same repository
+                        sub_repo_url = sub_issue_data.get("repository_url", "")
+                        sub_repo_name = sub_repo_url.rstrip("/").split("/")[-1] if sub_repo_url else ""
+                        if sub_repo_name and sub_repo_name != repo.name:
+                            self._logger.debug(
+                                "Skipping sub-issue %i - it's in repo %s, not %s",
+                                issue_number,
+                                sub_repo_name,
+                                repo.name,
+                            )
+                            continue
+                        self._logger.debug("github api request, get issue %i", issue_number)
+                        try:
+                            gh_child_issue = repo.issue(issue_number)
+                        except Exception as e:
+                            self._logger.warning(
+                                "Failed to fetch issue %i from repo %s: %s", issue_number, repo.name, e
+                            )
+                            continue
                         if has_label(gh_child_issue, build) and gh_child_issue.state == "closed":
                             enhancement_child = self.create_enhancement(repo, gh_child_issue, build)
                             enhancement.add_child(enhancement_child)
-            except NotFoundError:
-                self._logger.warning(
-                    "The theme %i is not a zenhub Epic, we cannot identify child tickets", gh_issue.number
-                )
+            else:
+                self._logger.debug("No sub-issues found for issue %i", gh_issue.number)
 
         return enhancement
 
@@ -442,12 +474,29 @@ class Enhancement(Issue):
 class RstRddReport(RddReport):
     """The reStructuredText format Rdd report."""
 
-    ZENHUB_TOKEN = "ZENHUB_TOKEN"
-
     def __init__(
-        self, org, title=None, start_time=None, end_time=None, build=None, token=None, filename="pdsen_issues.rst"
+        self,
+        org,
+        title=None,
+        start_time=None,
+        end_time=None,
+        build=None,
+        token=None,
+        filename="pdsen_issues.rst",
+        group_by_component=False,
     ):
-        """Initializer."""
+        """Initializer.
+
+        Args:
+            org: GitHub organization name
+            title: Document title (optional)
+            start_time: Start time filter for issues
+            end_time: End time filter for issues
+            build: Build label (e.g., B15.1)
+            token: GitHub token
+            filename: Output filename
+            group_by_component: If True, group repositories by product/component
+        """
         if not title:
             build_text = f"(Build {build})" if build else ""
             title = "Release Description Document " + build_text
@@ -457,12 +506,17 @@ class RstRddReport(RddReport):
         self._rst_doc = RstClothReferenceable(self._stream, line_width=120)
         self._rst_doc.title(title)
 
-        if RstRddReport.ZENHUB_TOKEN not in os.environ.keys():
-            self._logger.error("missing %s environment variable", RstRddReport.ZENHUB_TOKEN)
-            sys.exit(1)
+        self._group_by_component = group_by_component
+        self._repo_to_product = {}
+        self._metrics = {}  # Track metrics for summary table
+        self._component_metrics = {}  # Track metrics by component
 
-        zenhub_token = os.environ.get("ZENHUB_TOKEN")
-        self._zenhub = Zenhub(zenhub_token)
+        if group_by_component:
+            products_config = load_products_config()
+            if products_config:
+                self._repo_to_product = build_repo_to_product_map(products_config)
+            else:
+                self._logger.warning("Could not load products config, component grouping disabled")
 
     def _get_change_requests(self):
         """Get change requests."""
@@ -502,18 +556,30 @@ class RstRddReport(RddReport):
         self._rst_doc._add(repo_info)
 
     def _get_theme_trees(self, repo):
-        """Get theme trees."""
+        """Get theme trees.
+
+        Fetches all themes (open and closed) for the build. Open themes with closed
+        sub-issues will show those sub-issues. Closed themes without sub-issues
+        are displayed in a table format.
+        """
         labels = [self.THEME, self._target_build]
-        # Only want to see closed themes in the RDD, anything not closed should be in the deferrals
-        theme_issues = repo.issues(state="closed", labels=",".join(labels), direction="asc")
+        # Include both open and closed themes - open themes may have closed sub-issues
+        theme_issues = repo.issues(state="all", labels=",".join(labels), direction="asc")
         theme_trees = []
         for theme_issue in theme_issues:
-            theme = EpicFactory(self._zenhub, self._logger).create_enhancement(repo, theme_issue, self._target_build)
+            theme = EpicFactory(self._gh, self._org, self._logger).create_enhancement(
+                repo, theme_issue, self._target_build
+            )
             theme_trees.append(theme)
         return theme_trees
 
-    def _write_repo_change_section(self, repo):
-        """Wrirte repo change section."""
+    def _write_repo_change_section(self, repo, heading_level=2):
+        """Write repo change section.
+
+        Args:
+            repo: Repository object
+            heading_level: Heading level for repo name (2=H2, 3=H3). Sub-headings shift accordingly.
+        """
         issue_map = self._get_issues_groupby_type(repo, state="closed")
 
         issue_count = sum([len(issues) for issues in issue_map.values()])
@@ -521,35 +587,84 @@ class RstRddReport(RddReport):
         if issue_count:
             self._rst_doc.content("--------")
             self._rst_doc.newline()
-            self._rst_doc.h2(repo.name.capitalize())
-            self._add_repo_description(repo)
-            planned_tickets = self._add_planned_updates(repo)
-            self._add_other_updates(repo, issue_map, ignore_tickets=planned_tickets)
 
-    def _add_other_updates(self, repo, issues_map, ignore_tickets=None):
-        """Add other updates."""
+            # Use appropriate heading level based on component grouping
+            if heading_level == 2:
+                self._rst_doc.h2(repo.name.capitalize())
+            else:
+                self._rst_doc.h3(repo.name.capitalize())
+
+            self._add_repo_description(repo)
+            planned_tickets = self._add_planned_updates(repo, heading_level)
+            self._add_other_updates(repo, issue_map, ignore_tickets=planned_tickets, heading_level=heading_level)
+
+            # Track metrics for this repo
+            self._track_repo_metrics(repo.name, issue_map, planned_tickets)
+
+            return True  # Indicate that content was written
+        return False  # No content written
+
+    def _add_other_updates(self, repo, issues_map, ignore_tickets=None, heading_level=2):
+        """Add other updates.
+
+        Args:
+            repo: Repository object
+            issues_map: Dictionary mapping issue types to issue lists
+            ignore_tickets: Set of tickets to ignore
+            heading_level: Base heading level (2=repo at H2, 3=repo at H3)
+        """
         for type, issues in issues_map.items():
             issues_map[type] = list(set(issues) - ignore_tickets)
 
         issue_count = sum([len(issues) for issues in issues_map.values()])
 
         if issue_count > 0:
-            self._rst_doc.h3("Other Updates")
+            # Sub-heading is one level below repo heading
+            if heading_level == 2:
+                self._rst_doc.h3("Other Updates")
+            else:
+                self._rst_doc.h4("Other Updates")
             for issue_type, issues in issues_map.items():
                 if issues and issue_type != RddReport.THEME:
-                    self._add_rst_repo_change_sub_section(repo, issue_type, issues, ignore_tickets=ignore_tickets)
+                    self._add_rst_repo_change_sub_section(
+                        repo, issue_type, issues, ignore_tickets=ignore_tickets, heading_level=heading_level
+                    )
 
-    def _flush_theme_updates(self, theme_line, ticket_lines):
-        """Flush theme updates."""
-        theme_line = theme_line
-        self._rst_doc.h4(theme_line)
+    def _flush_theme_updates(self, repo, theme_issue, theme_line, ticket_lines, heading_level=2):
+        """Flush theme updates.
+
+        Args:
+            repo: Repository object
+            theme_issue: The theme issue object
+            theme_line: Theme header text
+            ticket_lines: Table data rows for sub-issues
+            heading_level: Base heading level (2=repo at H2, 3=repo at H3)
+        """
+        # Theme heading is two levels below repo heading
+        if heading_level == 2:
+            self._rst_doc.h4(theme_line)
+        else:
+            self._rst_doc.h5(theme_line)
 
         if ticket_lines:
+            # Show sub-issues in a table
             columns = ["Issue", "I&T Status", "Level", "Priority / Bug Severity"]
             self._rst_doc.table(columns, data=ticket_lines)
+        elif theme_issue.state == "closed":
+            # Closed theme with no sub-issues - show the theme itself in a table
+            i_and_t = RstRddReport._testing_status(theme_issue)
+            priority = get_issue_priority(theme_issue)
+            columns = ["Issue", "I&T Status", "Priority / Bug Severity"]
+            data = [[
+                f"`{repo.name}#{theme_issue.number}`_ {theme_issue.title}".replace("|", ""),
+                i_and_t,
+                priority,
+            ]]
+            self._rst_doc.table(columns, data=data)
         else:
+            # Open theme with no closed sub-issues yet
             self._rst_doc.content(
-                "No requirements, enhancements, or bug fixes tickets identified for this theme in the current build."
+                "No closed sub-issues identified for this theme in the current build yet."
                 + " Click on the link in this section title for details.",
                 indent=4,
             )
@@ -572,18 +687,30 @@ class RstRddReport(RddReport):
         """Get theme head."""
         return f"`{repo.name}#{issue.number}`_ {issue.title}"
 
-    def _add_planned_updates(self, repo):
-        """Add planned updates."""
+    def _add_planned_updates(self, repo, heading_level=2):
+        """Add planned updates.
+
+        Args:
+            repo: Repository object
+            heading_level: Base heading level (2=repo at H2, 3=repo at H3)
+        """
         themes = self._get_theme_trees(repo)
-        self._rst_doc.h3("Planned Updates")
+
+        # Sub-heading is one level below repo heading
+        if heading_level == 2:
+            self._rst_doc.h3("Planned Updates")
+        else:
+            self._rst_doc.h4("Planned Updates")
+
         planned_tickets = set()
         done = False
         for theme in themes:
             theme_crawler = theme.crawl()
-            theme = next(theme_crawler)
-            planned_tickets.add(theme.issue)
-            self._rst_doc.hyperlink(f"{repo.name}#{theme.issue.number}", theme.issue.html_url)
-            theme_head = RstRddReport._get_theme_head(repo, theme.issue)
+            theme_enhancement = next(theme_crawler)
+            theme_issue = theme_enhancement.issue
+            planned_tickets.add(theme_issue)
+            self._rst_doc.hyperlink(f"{repo.name}#{theme_issue.number}", theme_issue.html_url)
+            theme_head = RstRddReport._get_theme_head(repo, theme_issue)
             data = []
             for enhancement in theme_crawler:
                 issue = enhancement.issue
@@ -606,7 +733,7 @@ class RstRddReport(RddReport):
 
                     planned_tickets.add(issue)
 
-            self._flush_theme_updates(theme_head, data)
+            self._flush_theme_updates(repo, theme_issue, theme_head, data, heading_level)
             done = True
 
         if not done:
@@ -615,8 +742,16 @@ class RstRddReport(RddReport):
 
         return planned_tickets
 
-    def _add_rst_repo_change_sub_section(self, repo, type, issues, ignore_tickets=None):
-        """Add reStructuredText repo change sub section."""
+    def _add_rst_repo_change_sub_section(self, repo, type, issues, ignore_tickets=None, heading_level=2):
+        """Add reStructuredText repo change sub section.
+
+        Args:
+            repo: Repository object
+            type: Issue type (bug, enhancement, etc.)
+            issues: List of issues
+            ignore_tickets: Set of tickets to ignore
+            heading_level: Base heading level (2=repo at H2, 3=repo at H3)
+        """
         data = []
         for issue in issues:
             if issue.number not in ignore_tickets:
@@ -627,7 +762,11 @@ class RstRddReport(RddReport):
                 if type in {"bug", "requirement"} and priority == "unknown":
                     self._log_missing_priority(repo.name, issue.number)
         if data:
-            self._rst_doc.h4(type.capitalize() + "s")
+            # Issue type heading is two levels below repo heading
+            if heading_level == 2:
+                self._rst_doc.h4(type.capitalize() + "s")
+            else:
+                self._rst_doc.h5(type.capitalize() + "s")
             columns = ["Issue", "I&T Status", "Priority / Bug Severity"]
             self._rst_doc.table(columns, data=data)
 
@@ -635,6 +774,111 @@ class RstRddReport(RddReport):
         """Log missing priority."""
         self._logger.warning("%s#%d misses priority", repo_name, issue_number)
         self._logger.info("update at https://github.com/NASA-PDS/%s/issues/%d", repo_name, issue_number)
+
+    def _track_repo_metrics(self, repo_name, issue_map, planned_tickets):
+        """Track metrics for a repository.
+
+        Args:
+            repo_name: Name of the repository
+            issue_map: Dictionary mapping issue types to issue lists
+            planned_tickets: Set of planned tickets (to avoid double counting)
+        """
+        # Initialize metrics for this repo
+        repo_metrics = {
+            "bugs": 0,
+            "enhancements": 0,
+            "requirements": 0,
+            "tasks": 0,
+            "themes": 0,
+            "total": 0,
+        }
+
+        # Count issues by type (excluding planned tickets that were already counted)
+        for issue_type, issues in issue_map.items():
+            # Filter out planned tickets
+            filtered_issues = [i for i in issues if i not in planned_tickets]
+            count = len(filtered_issues)
+
+            if issue_type == "bug":
+                repo_metrics["bugs"] += count
+            elif issue_type == "enhancement":
+                repo_metrics["enhancements"] += count
+            elif issue_type == "requirement":
+                repo_metrics["requirements"] += count
+            elif issue_type == "theme":
+                repo_metrics["themes"] += count
+            elif issue_type == "task":
+                repo_metrics["tasks"] += count
+
+        # Count planned tickets
+        for ticket in planned_tickets:
+            for label in ticket.labels():
+                if label.name == "bug":
+                    repo_metrics["bugs"] += 1
+                    break
+                elif label.name == "enhancement":
+                    repo_metrics["enhancements"] += 1
+                    break
+                elif label.name == "requirement":
+                    repo_metrics["requirements"] += 1
+                    break
+                elif label.name == "theme":
+                    repo_metrics["themes"] += 1
+                    break
+                elif label.name == "task":
+                    repo_metrics["tasks"] += 1
+                    break
+
+        repo_metrics["total"] = sum([
+            repo_metrics["bugs"],
+            repo_metrics["enhancements"],
+            repo_metrics["requirements"],
+            repo_metrics["tasks"],
+            repo_metrics["themes"],
+        ])
+
+        self._metrics[repo_name] = repo_metrics
+
+        # Track by component if grouping is enabled
+        if self._group_by_component and repo_name in self._repo_to_product:
+            component_name = self._repo_to_product[repo_name][0]
+            if component_name not in self._component_metrics:
+                self._component_metrics[component_name] = {
+                    "bugs": 0,
+                    "enhancements": 0,
+                    "requirements": 0,
+                    "tasks": 0,
+                    "themes": 0,
+                    "total": 0,
+                }
+            # Add repo metrics to component
+            for key in repo_metrics:
+                self._component_metrics[component_name][key] += repo_metrics[key]
+
+    def _group_repos_by_component(self, repos_list):
+        """Group repositories by component/product.
+
+        Args:
+            repos_list: List of repository objects
+
+        Returns:
+            Tuple of (grouped_repos, unmapped_repos) where:
+                grouped_repos: dict {component_name: [repo_objects]}
+                unmapped_repos: list of repos not in any component
+        """
+        grouped = {}
+        unmapped = []
+
+        for repo in repos_list:
+            if repo.name in self._repo_to_product:
+                component_name = self._repo_to_product[repo.name][0]
+                if component_name not in grouped:
+                    grouped[component_name] = []
+                grouped[component_name].append(repo)
+            else:
+                unmapped.append(repo)
+
+        return grouped, unmapped
 
     def _add_software_changes(self, repos):
         """Add software changes."""
@@ -674,8 +918,47 @@ class RstRddReport(RddReport):
         )
         self._rst_doc.newline()
 
+        # Build list of repos to process
+        repos_to_process = []
         for _repo in self.available_repos():
             if not repos or _repo.name in repos:
+                repos_to_process.append(_repo)
+
+        if self._group_by_component and self._repo_to_product:
+            # Group repos by component
+            grouped_repos, unmapped_repos = self._group_repos_by_component(repos_to_process)
+
+            # Process each component
+            for component_name in sorted(grouped_repos.keys()):
+                component_repos = grouped_repos[component_name]
+                component_info = self._repo_to_product.get(component_repos[0].name, (None, {}))[1]
+                component_desc = component_info.get("description", "")
+
+                self._rst_doc.content("--------")
+                self._rst_doc.newline()
+                self._rst_doc.h2(f"Component: {format_component_name(component_name)}")
+                if component_desc:
+                    self._rst_doc.content(f"*{component_desc}*")
+                    self._rst_doc.newline()
+
+                for _repo in sorted(component_repos, key=lambda r: r.name):
+                    self._logger.info("Adding changes for repo %s (component: %s)", _repo.name, component_name)
+                    self._write_repo_change_section(_repo, heading_level=3)
+
+            # Process unmapped repos under "Other Coverage"
+            if unmapped_repos:
+                self._rst_doc.content("--------")
+                self._rst_doc.newline()
+                self._rst_doc.h2("Other Coverage")
+                self._rst_doc.content("*Repositories not assigned to a specific component.*")
+                self._rst_doc.newline()
+
+                for _repo in sorted(unmapped_repos, key=lambda r: r.name):
+                    self._logger.info("Adding changes for repo %s (unmapped)", _repo.name)
+                    self._write_repo_change_section(_repo, heading_level=3)
+        else:
+            # Original flat iteration
+            for _repo in repos_to_process:
                 self._logger.info("Adding changes for repo %s", _repo.name)
                 self._write_repo_change_section(_repo)
 
@@ -837,12 +1120,111 @@ class RstRddReport(RddReport):
             self._rst_doc.content("No PDS4 Standards Updates")
             self._rst_doc.newline()
 
+    def _add_summary_metrics(self):
+        """Add summary metrics table to end of document."""
+        if not self._metrics:
+            return
+
+        self._logger.info("Add release summary metrics")
+        self._rst_doc.h1("Release Summary Metrics")
+        self._rst_doc.content(
+            "This section provides a summary of the issues addressed in this release, "
+            "organized by issue type."
+        )
+        self._rst_doc.newline()
+
+        columns = ["Component/Repo", "Bugs", "Enhancements", "Requirements", "Tasks", "Themes", "Total"]
+        data = []
+
+        # Calculate totals
+        totals = {
+            "bugs": 0,
+            "enhancements": 0,
+            "requirements": 0,
+            "tasks": 0,
+            "themes": 0,
+            "total": 0,
+        }
+
+        if self._group_by_component and self._component_metrics:
+            # Show component-level metrics
+            for component_name in sorted(self._component_metrics.keys()):
+                metrics = self._component_metrics[component_name]
+                data.append([
+                    f"**{format_component_name(component_name)}**",
+                    str(metrics["bugs"]),
+                    str(metrics["enhancements"]),
+                    str(metrics["requirements"]),
+                    str(metrics["tasks"]),
+                    str(metrics["themes"]),
+                    str(metrics["total"]),
+                ])
+                for key in totals:
+                    totals[key] += metrics[key]
+
+            # Add repos not in components
+            unmapped_totals = {
+                "bugs": 0, "enhancements": 0, "requirements": 0,
+                "tasks": 0, "themes": 0, "total": 0
+            }
+            for repo_name, metrics in self._metrics.items():
+                if repo_name not in self._repo_to_product:
+                    unmapped_totals["bugs"] += metrics["bugs"]
+                    unmapped_totals["enhancements"] += metrics["enhancements"]
+                    unmapped_totals["requirements"] += metrics["requirements"]
+                    unmapped_totals["tasks"] += metrics["tasks"]
+                    unmapped_totals["themes"] += metrics["themes"]
+                    unmapped_totals["total"] += metrics["total"]
+
+            if unmapped_totals["total"] > 0:
+                data.append([
+                    "**Other Coverage**",
+                    str(unmapped_totals["bugs"]),
+                    str(unmapped_totals["enhancements"]),
+                    str(unmapped_totals["requirements"]),
+                    str(unmapped_totals["tasks"]),
+                    str(unmapped_totals["themes"]),
+                    str(unmapped_totals["total"]),
+                ])
+                for key in totals:
+                    totals[key] += unmapped_totals[key]
+        else:
+            # Show repo-level metrics
+            for repo_name in sorted(self._metrics.keys()):
+                metrics = self._metrics[repo_name]
+                data.append([
+                    repo_name,
+                    str(metrics["bugs"]),
+                    str(metrics["enhancements"]),
+                    str(metrics["requirements"]),
+                    str(metrics["tasks"]),
+                    str(metrics["themes"]),
+                    str(metrics["total"]),
+                ])
+                for key in totals:
+                    totals[key] += metrics[key]
+
+        # Add totals row
+        data.append([
+            "**TOTAL**",
+            f"**{totals['bugs']}**",
+            f"**{totals['enhancements']}**",
+            f"**{totals['requirements']}**",
+            f"**{totals['tasks']}**",
+            f"**{totals['themes']}**",
+            f"**{totals['total']}**",
+        ])
+
+        self._rst_doc.table(columns, data=data)
+        self._rst_doc.newline()
+
     def create(self, repos):
         """Create."""
         self._logger.info("Create RDD rst")
         self._add_introduction()
         self._add_standard_and_information_model_changes()
         self._add_software_changes(repos)
+        self._add_summary_metrics()
         self._add_liens()
         self._add_software_catalogue()
         self._add_install_and_operation()
