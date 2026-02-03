@@ -556,10 +556,15 @@ class RstRddReport(RddReport):
         self._rst_doc._add(repo_info)
 
     def _get_theme_trees(self, repo):
-        """Get theme trees."""
+        """Get theme trees.
+
+        Fetches all themes (open and closed) for the build. Open themes with closed
+        sub-issues will show those sub-issues. Closed themes without sub-issues
+        are displayed in a table format.
+        """
         labels = [self.THEME, self._target_build]
-        # Only want to see closed themes in the RDD, anything not closed should be in the deferrals
-        theme_issues = repo.issues(state="closed", labels=",".join(labels), direction="asc")
+        # Include both open and closed themes - open themes may have closed sub-issues
+        theme_issues = repo.issues(state="all", labels=",".join(labels), direction="asc")
         theme_trees = []
         for theme_issue in theme_issues:
             theme = EpicFactory(self._gh, self._org, self._logger).create_enhancement(
@@ -625,12 +630,14 @@ class RstRddReport(RddReport):
                         repo, issue_type, issues, ignore_tickets=ignore_tickets, heading_level=heading_level
                     )
 
-    def _flush_theme_updates(self, theme_line, ticket_lines, heading_level=2):
+    def _flush_theme_updates(self, repo, theme_issue, theme_line, ticket_lines, heading_level=2):
         """Flush theme updates.
 
         Args:
+            repo: Repository object
+            theme_issue: The theme issue object
             theme_line: Theme header text
-            ticket_lines: Table data rows
+            ticket_lines: Table data rows for sub-issues
             heading_level: Base heading level (2=repo at H2, 3=repo at H3)
         """
         # Theme heading is two levels below repo heading
@@ -640,11 +647,24 @@ class RstRddReport(RddReport):
             self._rst_doc.h5(theme_line)
 
         if ticket_lines:
+            # Show sub-issues in a table
             columns = ["Issue", "I&T Status", "Level", "Priority / Bug Severity"]
             self._rst_doc.table(columns, data=ticket_lines)
+        elif theme_issue.state == "closed":
+            # Closed theme with no sub-issues - show the theme itself in a table
+            i_and_t = RstRddReport._testing_status(theme_issue)
+            priority = get_issue_priority(theme_issue)
+            columns = ["Issue", "I&T Status", "Priority / Bug Severity"]
+            data = [[
+                f"`{repo.name}#{theme_issue.number}`_ {theme_issue.title}".replace("|", ""),
+                i_and_t,
+                priority,
+            ]]
+            self._rst_doc.table(columns, data=data)
         else:
+            # Open theme with no closed sub-issues yet
             self._rst_doc.content(
-                "No requirements, enhancements, or bug fixes tickets identified for this theme in the current build."
+                "No closed sub-issues identified for this theme in the current build yet."
                 + " Click on the link in this section title for details.",
                 indent=4,
             )
@@ -686,10 +706,11 @@ class RstRddReport(RddReport):
         done = False
         for theme in themes:
             theme_crawler = theme.crawl()
-            theme = next(theme_crawler)
-            planned_tickets.add(theme.issue)
-            self._rst_doc.hyperlink(f"{repo.name}#{theme.issue.number}", theme.issue.html_url)
-            theme_head = RstRddReport._get_theme_head(repo, theme.issue)
+            theme_enhancement = next(theme_crawler)
+            theme_issue = theme_enhancement.issue
+            planned_tickets.add(theme_issue)
+            self._rst_doc.hyperlink(f"{repo.name}#{theme_issue.number}", theme_issue.html_url)
+            theme_head = RstRddReport._get_theme_head(repo, theme_issue)
             data = []
             for enhancement in theme_crawler:
                 issue = enhancement.issue
@@ -712,7 +733,7 @@ class RstRddReport(RddReport):
 
                     planned_tickets.add(issue)
 
-            self._flush_theme_updates(theme_head, data, heading_level)
+            self._flush_theme_updates(repo, theme_issue, theme_head, data, heading_level)
             done = True
 
         if not done:
