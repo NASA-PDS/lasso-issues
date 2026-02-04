@@ -460,7 +460,7 @@ def create_release_theme(row, build_number, dry_run=False):
         the build label (e.g., "B17"). If no $BUILD placeholder is present, the
         title is used as-is without any build prefix.
 
-        Examples:
+        For example:
             - "$BUILD Release Planning" -> "B17 Release Planning"
             - "Infrastructure Upgrades" -> "Infrastructure Upgrades" (no change)
     """
