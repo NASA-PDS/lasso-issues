@@ -315,7 +315,7 @@ class TestCreateReleaseTheme(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures."""
         self.test_row = pd.Series({
-            "Title": "Release Planning",
+            "Title": "$BUILD Release Planning",
             "Repo": "NASA-PDS/test-repo",
             "Start Date": "2025-09-05",
             "End Date": "2025-10-16",
