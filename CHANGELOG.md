@@ -1,12 +1,17 @@
 # Changelog
 
-## [«unknown»](https://github.com/NASA-PDS/lasso-issues/tree/«unknown») (2026-01-14)
+## [«unknown»](https://github.com/NASA-PDS/lasso-issues/tree/«unknown») (2026-02-05)
 
 [Full Changelog](https://github.com/NASA-PDS/lasso-issues/compare/v2.0.0...«unknown»)
 
 **Requirements:**
 
+- As a PDS project manager, I want enhanced issue reporting with component grouping and parent-child hierarchy [\#47](https://github.com/NASA-PDS/lasso-issues/issues/47)
 - As a user, I want to automate creation of release theme issues from CSV schedules [\#41](https://github.com/NASA-PDS/lasso-issues/issues/41)
+
+**Improvements:**
+
+- Remove ZenHub integration from codebase [\#48](https://github.com/NASA-PDS/lasso-issues/issues/48)
 
 ## [v2.0.0](https://github.com/NASA-PDS/lasso-issues/tree/v2.0.0) (2025-12-16)
 
