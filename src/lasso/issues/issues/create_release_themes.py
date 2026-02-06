@@ -472,7 +472,11 @@ def create_release_theme(row, build_number, dry_run=False):
     checklist = row.get("Checklist", "")
     product = row.get("GitHub Project Product", "")
 
-    # Build label
+    # If description is empty or NaN, use the title as the description
+    if pd.isna(description) or not str(description).strip():
+        description = base_title
+
+    # Build label and full title with build prefix
     build_label = f"B{build_number}"
 
     # Replace $BUILD placeholder if present, otherwise use title as-is
