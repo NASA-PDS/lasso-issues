@@ -1,6 +1,6 @@
 # Changelog
 
-## [«unknown»](https://github.com/NASA-PDS/lasso-issues/tree/«unknown») (2026-02-06)
+## [«unknown»](https://github.com/NASA-PDS/lasso-issues/tree/«unknown») (2026-02-12)
 
 [Full Changelog](https://github.com/NASA-PDS/lasso-issues/compare/v2.0.0...«unknown»)
 
