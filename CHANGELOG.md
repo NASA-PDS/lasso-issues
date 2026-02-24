@@ -1,8 +1,16 @@
 # Changelog
 
-## [«unknown»](https://github.com/NASA-PDS/lasso-issues/tree/«unknown») (2026-02-12)
+## [2.1.0](https://github.com/NASA-PDS/lasso-issues/tree/2.1.0) (2026-02-24)
 
-[Full Changelog](https://github.com/NASA-PDS/lasso-issues/compare/v2.0.0...«unknown»)
+[Full Changelog](https://github.com/NASA-PDS/lasso-issues/compare/release/2.1.0...2.1.0)
+
+**Defects:**
+
+- RDD and markdown reports do not respect ignore flag in products config [\#51](https://github.com/NASA-PDS/lasso-issues/issues/51) [[s.medium](https://github.com/NASA-PDS/lasso-issues/labels/s.medium)]
+
+## [release/2.1.0](https://github.com/NASA-PDS/lasso-issues/tree/release/2.1.0) (2026-02-24)
+
+[Full Changelog](https://github.com/NASA-PDS/lasso-issues/compare/v2.0.0...release/2.1.0)
 
 **Requirements:**
 
