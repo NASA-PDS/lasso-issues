@@ -18,6 +18,7 @@ from lasso.issues.github import GithubConnection
 
 from .utils import build_repo_to_product_map
 from .utils import format_component_name
+from .utils import get_ignored_repos
 from .utils import get_issue_priority
 from .utils import has_label
 from .utils import ignore_issue
@@ -142,6 +143,7 @@ class RddReport:
     IGNORED_LABELS = {"wontfix", "duplicate", "invalid", "I&T", "untestable", "task"}
     SKIP_TESTING = "i&t.skip"
     TESTING_COMPLETE = "i&t.done"
+    # Legacy hardcoded list - kept for backwards compatibility, but products config takes precedence
     IGNORED_REPOS = {
         "PDS-Software-Issues-Repo",
         "pds-template-repo-python",
@@ -186,6 +188,16 @@ class RddReport:
         self._build = build
         self._target_build = build.replace("-SNAPSHOT", "")
 
+        # Load ignored repos from products config, falling back to hardcoded list
+        products_config = load_products_config()
+        if products_config:
+            self._ignored_repos = get_ignored_repos(products_config)
+            if self._ignored_repos:
+                self._logger.info("Ignoring %d repositories from config", len(self._ignored_repos))
+        else:
+            self._ignored_repos = RddReport.IGNORED_REPOS
+            self._logger.debug("Using hardcoded ignored repos list")
+
         self._stream = open(filename, "w")
         self._rst_doc = RstClothReferenceable(self._stream)
 
@@ -194,7 +206,7 @@ class RddReport:
     def available_repos(self):
         """Yield available repositories."""
         for _repo in self._gh.repositories_by(self._org):
-            if _repo.name not in RstRddReport.IGNORED_REPOS:
+            if _repo.name not in self._ignored_repos:
                 yield _repo
 
     def add_repo(self, repo):

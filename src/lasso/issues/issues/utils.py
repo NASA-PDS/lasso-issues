@@ -112,7 +112,7 @@ def get_issues_groupby_type(repo, state="all", start_time=None, end_time=None, i
 
 
 def get_org_issues_groupby_type_and_repo(
-    gh, org, repos_filter=None, state="all", start_time=None, end_time=None, ignore_types=None
+    gh, org, repos_filter=None, state="all", start_time=None, end_time=None, ignore_types=None, ignored_repos=None
 ):
     """Get issues grouped by type and repository using organization-level search.
 
@@ -126,6 +126,7 @@ def get_org_issues_groupby_type_and_repo(
         start_time: Start datetime for filtering issues (ISO 8601 format)
         end_time: End datetime for filtering issues (ISO 8601 format)
         ignore_types: List of issue types to ignore
+        ignored_repos: Set of repository names to exclude (e.g., from products config)
 
     Returns:
         dict: Nested dict of {repo_name: {issue_type: [issues]}}
@@ -176,6 +177,10 @@ def get_org_issues_groupby_type_and_repo(
 
                 # Filter by repository if specified
                 if repos_filter and repo_name not in repos_filter:
+                    continue
+
+                # Skip ignored repositories (from products config)
+                if ignored_repos and repo_name in ignored_repos:
                     continue
 
                 # Skip ignored issues
@@ -345,3 +350,24 @@ def build_repo_to_product_map(products_config):
             repo_to_product[repo_name] = (product_name, product_info)
 
     return repo_to_product
+
+
+def get_ignored_repos(products_config):
+    """Get list of repositories that should be ignored based on products config.
+
+    Args:
+        products_config: Products configuration dict from load_products_config()
+
+    Returns:
+        set: Set of repository names that should be ignored
+    """
+    if not products_config or "products" not in products_config:
+        return set()
+
+    ignored_repos = set()
+    for _product_name, product_info in products_config["products"].items():
+        if product_info.get("ignore", False):
+            repositories = product_info.get("repositories", [])
+            ignored_repos.update(repositories)
+
+    return ignored_repos

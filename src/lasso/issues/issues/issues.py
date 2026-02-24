@@ -13,6 +13,7 @@ from lasso.issues.github import GithubConnection
 from lasso.issues.issues import CsvTestCaseReport
 from lasso.issues.issues import MetricsRddReport
 from lasso.issues.issues import RstRddReport
+from lasso.issues.issues.utils import get_ignored_repos
 from lasso.issues.issues.utils import get_issue_priority
 from lasso.issues.issues.utils import get_org_issues_groupby_type_and_repo
 from lasso.issues.issues.utils import TOP_PRIORITIES
@@ -395,17 +396,23 @@ def create_md_issue_report(
     title = "PDS EN Issues" if output_report == "planning" else f"Known Bugs on {current_date}"
     _md_file = MdUtils(file_name="pdsen_issues", title=title)
 
-    # Load products config if grouping by component
+    # Load products config for component grouping and ignored repos
+    products_config = load_products_config()
     repo_to_product = {}
-    if group_by_component:
-        products_config = load_products_config()
-        if products_config:
+    ignored_repos = set()
+
+    if products_config:
+        ignored_repos = get_ignored_repos(products_config)
+        if ignored_repos:
+            _logger.info(f"Ignoring {len(ignored_repos)} repositories from config")
+        if group_by_component:
             repo_to_product = build_repo_to_product_map(products_config)
 
     # Get all issues at organization level (much more efficient!)
     _logger.info(f"Searching for issues in organization {org}")
     all_repos_issues = get_org_issues_groupby_type_and_repo(
-        gh, org, repos_filter=repos, state=issue_state, start_time=start_time, end_time=end_time
+        gh, org, repos_filter=repos, state=issue_state, start_time=start_time, end_time=end_time,
+        ignored_repos=ignored_repos
     )
 
     # Track metrics for summary table
