@@ -1,13 +1,5 @@
 # Changelog
 
-## [2.1.0](https://github.com/NASA-PDS/lasso-issues/tree/2.1.0) (2026-02-24)
-
-[Full Changelog](https://github.com/NASA-PDS/lasso-issues/compare/release/2.1.0...2.1.0)
-
-**Defects:**
-
-- RDD and markdown reports do not respect ignore flag in products config [\#51](https://github.com/NASA-PDS/lasso-issues/issues/51) [[s.medium](https://github.com/NASA-PDS/lasso-issues/labels/s.medium)]
-
 ## [release/2.1.0](https://github.com/NASA-PDS/lasso-issues/tree/release/2.1.0) (2026-02-24)
 
 [Full Changelog](https://github.com/NASA-PDS/lasso-issues/compare/v2.0.0...release/2.1.0)
@@ -20,6 +12,10 @@
 **Improvements:**
 
 - Remove ZenHub integration from codebase [\#48](https://github.com/NASA-PDS/lasso-issues/issues/48)
+
+**Defects:**
+
+- RDD and markdown reports do not respect ignore flag in products config [\#51](https://github.com/NASA-PDS/lasso-issues/issues/51) [[s.medium](https://github.com/NASA-PDS/lasso-issues/labels/s.medium)]
 
 ## [v2.0.0](https://github.com/NASA-PDS/lasso-issues/tree/v2.0.0) (2025-12-16)
 
