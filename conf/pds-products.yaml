@@ -14,10 +14,10 @@
 #         - repo-name
 #
 # IMPORTANT: Core Backbone products should be reviewed quarterly
-# Next review date: 2026-02-06
+# Next review date: 2026-08-28
 
 version: "2.0"
-updated: "2025-11-06"
+updated: "2026-05-28"
 
 products:
   deep-archive:
@@ -46,7 +46,6 @@ products:
     work_stream: "core-data-services"
     repositories:
       - doi-service
-      - doi-ui
 
   pds4-information-model:
     description: "PDS4 Information Model, ontology, and data dictionary tools"
@@ -55,6 +54,7 @@ products:
     repositories:
       - pds4-information-model
       - ldd-manager
+      - ldd-dashboard
       - PDS4-CCB
       - pds4-context-products
 
@@ -63,10 +63,10 @@ products:
     github_project_name: "PDS4 Viewer"
     work_stream: "core-data-services"
     repositories:
-      - pds-view
+      - pds-view-legacy
       - pds4-viewer-support
       - pds4-jparser
-      - ds-view
+      - portal-ds-view
 
   peppi:
     description: "Planetary Data Explorer Python (PEPPi) client library"
@@ -98,7 +98,7 @@ products:
       - registry-sweepers
       - harvest
       - supplementer
-      - tracking-service
+      - tracking-service-legacy
       - tracking-ui
       - pds4-graph
 
@@ -113,6 +113,7 @@ products:
       - pds-api-client
       - search-api-notebook
       - planetary-data-engine
+      - dd-search
 
   validate:
     description: "PDS4 data product validation tools"
@@ -135,6 +136,7 @@ products:
     github_project_name: "Web Content"
     work_stream: "web-modernization"
     repositories:
+      - portal
       - portal-legacy
       - portal-legacy-docker
       - portal-drupal
@@ -143,7 +145,7 @@ products:
       - nasa-pds.github.io
       - planetarydata.org
       - pds-web-mgmt
-      - edwg
+      - EdWG
 
   web-design:
     description: "PDS Web Design System (WDS) components and implementations"
@@ -167,11 +169,10 @@ products:
       - s3-browser-cloudfront
       - gis-web-client
       - api-subpath
-      - test-react-app
-      - test-react-package
-      - wst-docker-drupal
+      - portal-wst-docker-drupal
       - Drupal-Temp
       - search-ui-legacy
+      - portal-search-ui-legacy
 
   cloud-platform-engineering:
     description: "Planetary Data Cloud platform infrastructure and engineering"
@@ -188,6 +189,8 @@ products:
       - cloud-tools
       - cosmo-sign
       - notification-service
+      - pds-cds-infra
+      - portal-infra
 
   nucleus:
     description: "Nucleus workflow platform for planetary data processing"
@@ -196,7 +199,6 @@ products:
     repositories:
       - nucleus
       - nucleus-configurator
-      - nucleus-data-hauler
       - nucleus-tools-java
       - nucleus-tools.py
       - crawler-trigger
@@ -225,6 +227,7 @@ products:
     work_stream: "core-data-services"
     repositories:
       - operations
+      - en-ops-utils
 
   system-engineering:
     description: "System-level engineering, requirements, and documentation"
@@ -243,6 +246,8 @@ products:
       - template-repo-nodejs
       - template-repo-python
       - product_relationships
+      - oias-if
+      - outlaw-tracker
 
   integration-and-testing:
     description: "Integration and testing infrastructure"
@@ -261,7 +266,8 @@ products:
       - logging-core
       - pds-mcp-server
       - llms-and-pds
-      - pds-claude-skills
+      - pds-agent-skills
+      - litellm-freehealth
 
   dependencies:
     description: "External dependencies and forked repositories maintained by PDS"
@@ -277,6 +283,8 @@ products:
       - solr-to-es
       - merge-branch
       - PDS-Pipelines
+      - pds4_tools_prototype
+      - portal-search
 
   node-products:
     description: "Tools and interfaces implemented by other nodes"
@@ -299,6 +307,8 @@ products:
     repositories:
       - pds-github-util
       - pds-doi-legacy
+      - doi-ui
+      - pds-view-legacy
       - registry-api-service
       - registry-ci
       - registry-ingest-util-legacy
@@ -325,3 +335,5 @@ forked_repositories:
   - merge-branch
   - PDS-Pipelines
   - pds-thin-egress-app
+  - pds4_tools_prototype
+  - portal-search
