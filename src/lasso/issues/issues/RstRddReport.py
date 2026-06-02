@@ -22,6 +22,7 @@ from .utils import get_ignored_repos
 from .utils import get_issue_priority
 from .utils import has_label
 from .utils import ignore_issue
+from .utils import is_spillover_to_ignore
 from .utils import issue_is_pull_request
 from .utils import load_products_config
 
@@ -236,6 +237,7 @@ class RddReport:
 
                 if (
                     not ignore_issue(issue.labels(), ignore_labels=RstRddReport.IGNORED_LABELS)
+                    and not is_spillover_to_ignore(issue, self._target_build)
                     and (self._end_time is None or compare_date < datetime.fromisoformat(self._end_time))
                     and (self._start_time is None or compare_date > datetime.fromisoformat(self._start_time))
                 ):

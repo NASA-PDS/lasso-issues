@@ -3,9 +3,7 @@ import argparse
 import logging
 import sys
 from datetime import datetime
-from pathlib import Path
 
-import yaml
 from lasso.issues.argparse import add_standard_arguments
 from lasso.issues.github import get_parent_issue
 from lasso.issues.github import get_sub_issues
@@ -13,9 +11,11 @@ from lasso.issues.github import GithubConnection
 from lasso.issues.issues import CsvTestCaseReport
 from lasso.issues.issues import MetricsRddReport
 from lasso.issues.issues import RstRddReport
+from lasso.issues.issues.utils import build_repo_to_product_map
 from lasso.issues.issues.utils import get_ignored_repos
 from lasso.issues.issues.utils import get_issue_priority
 from lasso.issues.issues.utils import get_org_issues_groupby_type_and_repo
+from lasso.issues.issues.utils import load_products_config
 from lasso.issues.issues.utils import TOP_PRIORITIES
 from mdutils.mdutils import MdUtils
 
@@ -24,50 +24,6 @@ DEFAULT_GITHUB_ORG = "NASA-PDS"
 
 _logger = logging.getLogger(__name__)
 
-
-def load_products_config():
-    """Load the PDS products configuration from YAML file.
-
-    Returns:
-        dict: Products configuration, or None if file not found
-    """
-    # Try to find conf/pds-products.yaml relative to this file
-    current_dir = Path(__file__).parent
-    config_paths = [
-        current_dir.parent.parent.parent.parent / "conf" / "pds-products.yaml",  # From src/lasso/issues/issues
-        Path.cwd() / "conf" / "pds-products.yaml",  # From current working directory
-    ]
-
-    for config_path in config_paths:
-        if config_path.exists():
-            _logger.debug(f"Loading products config from {config_path}")
-            with open(config_path) as f:
-                return yaml.safe_load(f)
-
-    _logger.warning("Could not find conf/pds-products.yaml - grouping by component will not be available")
-    return None
-
-
-def build_repo_to_product_map(products_config):
-    """Build a mapping from repository name to product name.
-
-    Args:
-        products_config: Products configuration dict
-
-    Returns:
-        dict: Mapping from repo name to (product_name, product_info) tuple
-    """
-    repo_map = {}
-    if not products_config or "products" not in products_config:
-        return repo_map
-
-    for product_name, product_info in products_config["products"].items():
-        if product_info.get("ignore", False):
-            continue
-        for repo in product_info.get("repositories", []):
-            repo_map[repo] = (product_name, product_info)
-
-    return repo_map
 
 
 def build_parent_child_map(gh, org, repo_name, issues_list, fetch_parents=False):

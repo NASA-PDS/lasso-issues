@@ -1,6 +1,9 @@
 """Utilities."""
 import logging
 import os
+import re
+import urllib.error
+import urllib.request
 
 import yaml
 
@@ -69,6 +72,44 @@ def ignore_issue(labels, ignore_labels=IGNORE_LABELS):
             return True
 
     return False
+
+
+_BUILD_LABEL_RE = re.compile(r'^[Bb](\d+(?:\.\d+)?)$')
+
+
+def _parse_build_number(label):
+    """Parse a build label (e.g. 'B18', 'B15.1') into a float for comparison."""
+    match = _BUILD_LABEL_RE.match(label)
+    return float(match.group(1)) if match else -1.0
+
+
+def is_spillover_to_ignore(issue, current_build):
+    """Check whether a task-spillover issue should be excluded from the current build's report.
+
+    An issue tagged ``task-spillover`` spans two builds: the build it was originally
+    planned for (the *source* build) and the build it actually landed in (the *target*
+    build, which is the largest build label on the issue).  The report for the source
+    build should **include** the issue (it counts as that increment's delivery), while
+    the report for the target build should **exclude** it (to avoid double-counting).
+
+    Args:
+        issue: GitHub issue object
+        current_build: The build label being reported (e.g. ``'B17'`` or ``'B18'``)
+
+    Returns:
+        bool: True if the issue should be excluded from the current build's report.
+    """
+    label_names = [get_label_name(l) for l in get_labels_list(issue)]
+
+    if "task-spillover" not in label_names:
+        return False
+
+    build_labels = [l for l in label_names if _BUILD_LABEL_RE.match(l)]
+    if not build_labels:
+        return False
+
+    max_build_num = max(_parse_build_number(l) for l in build_labels)
+    return _parse_build_number(current_build) >= max_build_num
 
 
 def get_issues_groupby_type(repo, state="all", start_time=None, end_time=None, ignore_types=None):
@@ -296,32 +337,78 @@ def format_component_name(name):
     return " ".join(formatted_words)
 
 
+_PRODUCTS_CONFIG_URL = (
+    "https://raw.githubusercontent.com/NASA-PDS/.github/main/conf/pds-products.yaml"
+)
+
+
+def _fetch_products_config_from_url(url=_PRODUCTS_CONFIG_URL, timeout=5):
+    """Fetch pds-products.yaml from NASA-PDS/.github (the canonical source)."""
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as resp:
+            content = resp.read().decode("utf-8")
+        config = yaml.safe_load(content)
+        if config and "products" in config:
+            return config
+        _logger.warning("Invalid products config fetched from URL: missing 'products' key")
+        return None
+    except (urllib.error.URLError, OSError, yaml.YAMLError) as e:
+        _logger.debug("Could not fetch products config from %s: %s", url, e)
+        return None
+
+
 def load_products_config(config_path=None):
     """Load PDS products configuration from YAML file.
 
     Args:
-        config_path: Path to the config file. If None, tries conf/pds-products.yaml
-                     relative to the current working directory.
+        config_path: Path to the config file. If None, tries (in order):
+                     1. conf/pds-products.yaml relative to the current working directory
+                     2. NASA-PDS/.github canonical URL (live, always up-to-date)
+                     3. The config bundled inside the installed package (offline fallback)
 
     Returns:
         dict: Products configuration, or None if not found or invalid.
     """
     if config_path is None:
-        config_path = os.path.join(os.getcwd(), "conf", "pds-products.yaml")
+        cwd_path = os.path.join(os.getcwd(), "conf", "pds-products.yaml")
+        if os.path.exists(cwd_path):
+            config_path = cwd_path
+        else:
+            # Fetch from canonical source
+            config = _fetch_products_config_from_url()
+            if config is not None:
+                return config
+
+            # Offline fallback: bundled package copy
+            try:
+                from importlib.resources import files
+                bundled = files("lasso.issues").joinpath("conf/pds-products.yaml")
+                with bundled.open("r") as fh:
+                    config = yaml.safe_load(fh)
+                if config and "products" in config:
+                    _logger.warning(
+                        "Using bundled products config — may be outdated. "
+                        "Check network access to github.com."
+                    )
+                    return config
+                _logger.warning("Invalid bundled products config: missing 'products' key")
+                return None
+            except (FileNotFoundError, TypeError, AttributeError) as e:
+                _logger.warning("Could not load bundled products config: %s", e)
+                return None
 
     if not os.path.exists(config_path):
         _logger.warning("Products config file not found: %s", config_path)
         return None
 
     try:
-        with open(config_path) as f:
-            config = yaml.safe_load(f)
+        with open(config_path) as fh:
+            config = yaml.safe_load(fh)
             if config and "products" in config:
                 return config
-            else:
-                _logger.warning("Invalid products config: missing 'products' key")
-                return None
-    except Exception as e:
+            _logger.warning("Invalid products config: missing 'products' key")
+            return None
+    except (yaml.YAMLError, OSError) as e:
         _logger.warning("Error loading products config: %s", e)
         return None
 
