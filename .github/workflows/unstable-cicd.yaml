@@ -51,14 +51,14 @@ jobs:
         steps:
             -
                 name: 💳 Checkout
-                uses: actions/checkout@v5
+                uses: actions/checkout@v6
                 with:
                     lfs: true
                     token: ${{secrets.ADMIN_GITHUB_TOKEN}}
                     fetch-depth: 0
             -
                 name: 💵 Python Cache
-                uses: actions/cache@v4
+                uses: actions/cache@v5
                 with:
                     path: ~/.cache/pip
                     # The "key" used to indicate a set of cached files is the operating system runner
@@ -76,6 +76,11 @@ jobs:
                     pypi_username: ${{secrets.TEST_PYPI_USERNAME}}
                     pypi_password: ${{secrets.TEST_PYPI_PASSWORD}}
                     ADMIN_GITHUB_TOKEN: ${{secrets.ADMIN_GITHUB_TOKEN}}
+            -
+                name: 🛏️ Upload Coverage
+                uses: SonarSource/sonarqube-scan-action@v8
+                env:
+                     SONAR_TOKEN: ${{secrets.SONAR_TOKEN}}
 
 ...
 
