@@ -27,14 +27,22 @@ repos:
 #         language: system
 #         pass_filenames: false
 
--   repo: local
-    hooks:
-    -   id: black
-        name: black
-        entry: black
-        files: ^src/|tests/
-        language: system
-        types: [python]
+# Disabling black because it's conflicting with reorder_python_imports. That
+# hook wants to add a blank line before the imports, and then black wants to
+# remove it.
+#
+# Choosing to prioritize reorder_python_imports hook since it can reduce
+# merge conflicts and black is too authoritarian.
+#
+# -   repo: local
+#     hooks:
+#     -   id: black
+#         name: black
+#         entry: black
+#         files: ^src/|tests/
+#         language: system
+#         types: [python]
+
 
 -   repo: local
     hooks:
