@@ -1350,6 +1350,14 @@ class CsvTestCaseReport(RddReport):
 
     def create(self, repos):
         """Create."""
+        print("=" * 80)
+        print("SECURITY NOTICE:")
+        print("This script disables SSL certificate verification (verify=False) for all")
+        print("TestRail API requests and suppresses InsecureRequestWarning messages.")
+        print("This configuration should only be used in trusted network environments.")
+        print("=" * 80)
+        print()
+
         for _repo in self.available_repos():
             if not repos or _repo.name in repos:
                 self.add_repo(_repo)
