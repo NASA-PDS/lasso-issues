@@ -1294,6 +1294,10 @@ class CsvTestCaseReport(RddReport):
         self._filename = filename
 
         from requests.auth import HTTPBasicAuth
+        import urllib3
+
+        # Suppress InsecureRequestWarnings for TestRail SSL verification
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
         self._basic_auth = HTTPBasicAuth(testrail_user_email, testrail_user_token)
         self._testrail_url = testrail_base_url
