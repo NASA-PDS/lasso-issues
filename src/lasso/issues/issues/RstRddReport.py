@@ -1269,7 +1269,7 @@ class NoAcceptanceCriteriaFoundError(Exception):
 class CsvTestCaseReport(RddReport):
     """Report as test cases importable in test management software. Used with testrail."""
 
-    TEST_CASE_REFS_REGEX = [r"B[0-9][0-9]\.[0-9]", r"s\..*", r"p\..*", r"requirement", r"bug", r"i&t.automated"]  # noqa
+    TEST_CASE_REFS_REGEX = [r"B[0-9][0-9].*", r"s\..*", r"p\..*", r"requirement", r"bug", r"i&t.automated"]  # noqa
     # TODO make that an argument
     PROJECT_ID = 168
     # TODO make that an argument
@@ -1356,7 +1356,7 @@ class CsvTestCaseReport(RddReport):
 
         # print test ref for test coverage
         print(
-            "Keep this list of github ticket references to create the coverage report, using the summary of references:"
+            "\nKeep this list of github ticket references to create the coverage report, using the summary of references:"
         )
         print("\n".join(self._build_issue_refs))
 
@@ -1396,7 +1396,7 @@ class CsvTestCaseReport(RddReport):
         return False
 
     def _post_test_case(self, issue_ref, acn, test_case: dict, repo_name):
-        self._logger.info("Posting to TestRail: %s-AC%s", issue_ref, acn)
+        self._logger.info("  Posting to TestRail: %s-AC%s", issue_ref, acn)
         case_ref = f"{issue_ref}-AC{acn}"
         if case_ref in self._current_repo_existing_cases:
             # update
