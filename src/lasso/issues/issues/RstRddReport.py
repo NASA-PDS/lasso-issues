@@ -1306,19 +1306,46 @@ class CsvTestCaseReport(RddReport):
         self._issues = []
         self._build_issue_refs = []
 
+    def _extract_testrail_data(self, response_json, data_key):
+        """
+        Extract data from TestRail API response, handling both v8 and v10+ formats.
+
+        TestRail v8: Direct array or simple dict
+        TestRail v10+: Paginated response with wrapper containing offset, limit, size, _links
+
+        Args:
+            response_json: Parsed JSON response from TestRail API
+            data_key: Key to extract (e.g., 'sections', 'cases')
+
+        Returns:
+            List of items from the response
+        """
+        if isinstance(response_json, list):
+            # Direct array response (old format)
+            return response_json
+        elif isinstance(response_json, dict):
+            if "error" in response_json:
+                raise ValueError(f"TestRail API error: {response_json['error']}")
+            # v10+ paginated response or v8 wrapped response
+            return response_json.get(data_key, [])
+        else:
+            raise TypeError(f"Unexpected TestRail response type: {type(response_json)}")
+
     def _update_section_ids(self):
+        """Fetch and cache TestRail section IDs for all repositories."""
         section_response = requests.get(
             f"{self._testrail_url}/index.php?/api/v2/get_sections/{self.PROJECT_ID}&suite_id={self.SUITE_ID}",
             auth=self._basic_auth,
             headers={"content-type": "application/json"},
             verify=False,
         )
-        # depending on testrail version
-        section_response_json = section_response.json()
-        # if true for testrail version 8
-        section_list = (
-            section_response_json["sections"] if "sections" in section_response.json() else section_response_json
-        )
+
+        if section_response.status_code != 200:
+            raise RuntimeError(
+                f"TestRail API error: HTTP {section_response.status_code}\n{section_response.text}"
+            )
+
+        section_list = self._extract_testrail_data(section_response.json(), "sections")
         self._sections = {s["name"]: s["id"] for s in section_list}
 
     def create(self, repos):
@@ -1450,22 +1477,60 @@ class CsvTestCaseReport(RddReport):
             )
             self._update_section_ids()
         else:
-            # get existing test cases
+            # Get existing test cases to avoid duplicates
             cases_resp = requests.get(
                 f"{self._testrail_url}/index.php?/api/v2/get_cases/{self.PROJECT_ID}&suite_id={self.SUITE_ID}&section_id={self._sections[repo.name]}",
                 auth=self._basic_auth,
                 headers={"content-type": "application/json"},
                 verify=False,
             )
-            cases_json = cases_resp.json()
-            # if true for testrail version 8
-            cases = cases_json["cases"] if "cases" in cases_json else cases_json
-            for case in cases:
-                refs = case["refs"].split(",")
-                issue_ref = [ref for ref in refs if "#" in ref][0]
-                self._logger.debug("looking at the pre-existing issue ref %s", issue_ref)
-                ac_ref = [ref for ref in refs if ref.startswith("AC")][0]
-                self._current_repo_existing_cases[f"{issue_ref}-{ac_ref}"] = case["id"]
+
+            if cases_resp.status_code != 200:
+                self._logger.warning(
+                    "Failed to get existing test cases: HTTP %s\n%s",
+                    cases_resp.status_code,
+                    cases_resp.text,
+                )
+            else:
+                cases = self._extract_testrail_data(cases_resp.json(), "cases")
+                self._logger.info("Processing %d existing test cases for repo %s", len(cases), repo.name)
+
+                for case in cases:
+                    case_id = case.get("id")
+                    case_refs = case.get("refs", "").strip()
+
+                    if not case_refs:
+                        self._logger.debug("Case %s has no refs, skipping", case_id)
+                        continue
+
+                    refs = [ref.strip() for ref in case_refs.split(",")]
+
+                    # Extract issue reference (contains "#")
+                    issue_refs = [ref for ref in refs if "#" in ref]
+                    if not issue_refs:
+                        self._logger.warning(
+                            "Case %s (%s) has no issue reference in refs: %s",
+                            case_id,
+                            case.get("title", "N/A"),
+                            case_refs,
+                        )
+                        continue
+
+                    # Extract AC reference (starts with "AC")
+                    ac_refs = [ref for ref in refs if ref.startswith("AC")]
+                    if not ac_refs:
+                        self._logger.warning(
+                            "Case %s (%s) has no AC reference in refs: %s",
+                            case_id,
+                            case.get("title", "N/A"),
+                            case_refs,
+                        )
+                        continue
+
+                    issue_ref = issue_refs[0]
+                    ac_ref = ac_refs[0]
+                    self._logger.debug("Cached existing case: %s-%s -> %s", issue_ref, ac_ref, case_id)
+                    self._current_repo_existing_cases[f"{issue_ref}-{ac_ref}"] = case_id
 
         for short_issue in repo.issues(state="closed", labels=self._build, direction="asc"):
             compare_date = short_issue.closed_at
