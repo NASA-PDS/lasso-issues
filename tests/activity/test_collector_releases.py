@@ -2,7 +2,7 @@
 import unittest
 import unittest.mock
 
-from lasso.issues.evidence.schema import normalize_release
+from lasso.issues.activity.schema import normalize_release
 
 
 class TestNormalizeRelease(unittest.TestCase):
@@ -73,7 +73,7 @@ class TestParseDateRange(unittest.TestCase):
     """Tests for the _parse_date and _parse_iso helpers."""
 
     def test_parse_date_start(self):
-        from lasso.issues.evidence.collector_releases import _parse_date
+        from lasso.issues.activity.collector_releases import _parse_date
         from datetime import timezone
         dt = _parse_date("2026-01-15")
         self.assertEqual(dt.year, 2026)
@@ -82,19 +82,19 @@ class TestParseDateRange(unittest.TestCase):
         self.assertEqual(dt.tzinfo, timezone.utc)
 
     def test_parse_date_end_of_day(self):
-        from lasso.issues.evidence.collector_releases import _parse_date
+        from lasso.issues.activity.collector_releases import _parse_date
         dt = _parse_date("2026-01-15", end_of_day=True)
         self.assertEqual(dt.hour, 23)
         self.assertEqual(dt.second, 59)
 
     def test_parse_iso_z_suffix(self):
-        from lasso.issues.evidence.collector_releases import _parse_iso
+        from lasso.issues.activity.collector_releases import _parse_iso
         dt = _parse_iso("2026-06-01T10:00:00Z")
         self.assertIsNotNone(dt)
         self.assertEqual(dt.year, 2026)
 
     def test_parse_iso_invalid_returns_none(self):
-        from lasso.issues.evidence.collector_releases import _parse_iso
+        from lasso.issues.activity.collector_releases import _parse_iso
         self.assertIsNone(_parse_iso("not-a-date"))
 
 
@@ -102,7 +102,7 @@ class TestPaginate(unittest.TestCase):
     """Tests for the _paginate helper."""
 
     def test_single_page_returned(self):
-        from lasso.issues.evidence.collector_releases import _paginate
+        from lasso.issues.activity.collector_releases import _paginate
         page = [{"id": i} for i in range(50)]
         response = unittest.mock.MagicMock()
         response.status_code = 200
@@ -115,7 +115,7 @@ class TestPaginate(unittest.TestCase):
         self.assertEqual(gh.session.get.call_count, 1)
 
     def test_multiple_pages_fetched(self):
-        from lasso.issues.evidence.collector_releases import _paginate
+        from lasso.issues.activity.collector_releases import _paginate
         full_page = [{"id": i} for i in range(100)]
         partial_page = [{"id": i} for i in range(30)]
 
@@ -135,7 +135,7 @@ class TestPaginate(unittest.TestCase):
         self.assertEqual(gh.session.get.call_count, 2)
 
     def test_non_200_on_first_page_returns_none(self):
-        from lasso.issues.evidence.collector_releases import _paginate
+        from lasso.issues.activity.collector_releases import _paginate
         response = unittest.mock.MagicMock()
         response.status_code = 404
         gh = unittest.mock.MagicMock()

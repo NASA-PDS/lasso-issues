@@ -1,7 +1,7 @@
-"""pds-evidence CLI: orchestrate the PDS EN Evidence Collector (issue #65).
+"""pds-activity CLI: orchestrate the PDS EN Activity Collector (issue #65).
 
 Collects GitHub issues, PRs, and releases for a date range across NASA-PDS
-repositories and writes a canonical evidence.json file.
+repositories and writes a canonical activity.json file.
 """
 import argparse
 import json
@@ -12,13 +12,13 @@ from datetime import timezone
 from pathlib import Path
 
 from lasso.issues.argparse import add_standard_arguments
-from lasso.issues.evidence.collector_issues import collect_issues
-from lasso.issues.evidence.collector_issues import discover_repos
-from lasso.issues.evidence.collector_prs import collect_prs
-from lasso.issues.evidence.collector_releases import collect_releases
-from lasso.issues.evidence.correlator import correlate
-from lasso.issues.evidence.schema import EvidenceDocument
-from lasso.issues.evidence.schema import EvidenceMetadata
+from lasso.issues.activity.collector_issues import collect_issues
+from lasso.issues.activity.collector_issues import discover_repos
+from lasso.issues.activity.collector_prs import collect_prs
+from lasso.issues.activity.collector_releases import collect_releases
+from lasso.issues.activity.correlator import correlate
+from lasso.issues.activity.schema import ActivityDocument
+from lasso.issues.activity.schema import ActivityMetadata
 from lasso.issues.github import GithubConnection
 
 try:
@@ -29,10 +29,10 @@ except ImportError:
 _logger = logging.getLogger(__name__)
 
 DEFAULT_ORG = "NASA-PDS"
-DEFAULT_OUTPUT = "evidence.json"
+DEFAULT_OUTPUT = "activity.json"
 
 
-def build_evidence_document(
+def build_activity_document(
     org: str,
     start_date: str,
     end_date: str,
@@ -42,7 +42,7 @@ def build_evidence_document(
     correlation_log: list,
     repo_count: int,
 ) -> dict:
-    """Assemble the canonical EvidenceDocument dict.
+    """Assemble the canonical ActivityDocument dict.
 
     All artifact lists are sorted deterministically by (repo, id) so that
     the same inputs always produce the same output.
@@ -51,18 +51,18 @@ def build_evidence_document(
         org: GitHub organization name
         start_date: ISO 8601 date (YYYY-MM-DD)
         end_date: ISO 8601 date (YYYY-MM-DD)
-        issues: Correlated EvidenceIssue list
-        prs: Correlated EvidencePR list
-        releases: Correlated EvidenceRelease list
+        issues: Correlated ActivityIssue list
+        prs: Correlated ActivityPR list
+        releases: Correlated ActivityRelease list
         correlation_log: List of log strings from the correlator
         repo_count: Number of repositories searched
 
     Returns:
-        dict matching the EvidenceDocument schema
+        dict matching the ActivityDocument schema
     """
     generated_at = datetime.now(tz=timezone.utc).isoformat()
 
-    metadata = EvidenceMetadata(
+    metadata = ActivityMetadata(
         org=org,
         start_date=start_date,
         end_date=end_date,
@@ -75,7 +75,7 @@ def build_evidence_document(
     sorted_prs = sorted(prs, key=lambda p: (p['repo'], p['id']))
     sorted_releases = sorted(releases, key=lambda r: (r['repo'], r['published_at'] or ''))
 
-    return EvidenceDocument(
+    return ActivityDocument(
         metadata=metadata,
         issues=sorted_issues,
         pull_requests=sorted_prs,
@@ -84,25 +84,25 @@ def build_evidence_document(
     )
 
 
-def write_evidence(document: dict, output_path: str) -> None:
-    """Write the evidence document to JSON.
+def write_activity(document: dict, output_path: str) -> None:
+    """Write the activity document to JSON.
 
     Args:
-        document: EvidenceDocument dict
+        document: ActivityDocument dict
         output_path: File path to write (created or overwritten)
     """
     path = Path(output_path)
     with path.open('w', encoding='utf-8') as fh:
         json.dump(document, fh, indent=2, sort_keys=True, default=str)
-    _logger.info("Evidence written to %s", path)
+    _logger.info("Activity written to %s", path)
 
 
 def write_validation_log(document: dict, output_path: str) -> None:
-    """Write a validation summary log alongside the evidence JSON.
+    """Write a validation summary log alongside the activity JSON.
 
     Args:
-        document: EvidenceDocument dict
-        output_path: Path of the evidence.json file (log is written next to it)
+        document: ActivityDocument dict
+        output_path: Path of the activity.json file (log is written next to it)
     """
     log_path = Path(output_path).with_name(Path(output_path).stem + '-validation.log')
     issues = document['issues']
@@ -122,7 +122,7 @@ def write_validation_log(document: dict, output_path: str) -> None:
         warnings.append("WARNING: No pull requests collected")
 
     lines = [
-        f"Evidence Validation Log",
+        f"Activity Validation Log",
         f"Generated: {metadata['generated_at']}",
         f"Org: {metadata['org']}  Date range: {metadata['start_date']} to {metadata['end_date']}",
         f"Repos searched: {metadata['repo_count']}",
@@ -144,7 +144,7 @@ def write_validation_log(document: dict, output_path: str) -> None:
 
 
 def main():
-    """Main entrypoint for pds-evidence CLI."""
+    """Main entrypoint for pds-activity CLI."""
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description="Collect GitHub issues, PRs, and releases for PDS EN status reporting.",
@@ -214,7 +214,7 @@ def main():
     _logger.info("Running correlation engine")
     corr_issues, corr_prs, corr_releases, corr_log = correlate(issues, prs, releases)
 
-    document = build_evidence_document(
+    document = build_activity_document(
         org=args.org,
         start_date=args.start_date,
         end_date=args.end_date,
@@ -225,7 +225,7 @@ def main():
         repo_count=len(repos),
     )
 
-    write_evidence(document, args.output)
+    write_activity(document, args.output)
     write_validation_log(document, args.output)
 
     _logger.info(

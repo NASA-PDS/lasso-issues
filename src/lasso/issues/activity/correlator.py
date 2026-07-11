@@ -32,9 +32,9 @@ def correlate(issues: list, prs: list, releases: list) -> tuple:
     ``linked_releases``, and ``closing_release`` fields.
 
     Args:
-        issues: List of EvidenceIssue dicts
-        prs: List of EvidencePR dicts
-        releases: List of EvidenceRelease dicts
+        issues: List of ActivityIssue dicts
+        prs: List of ActivityPR dicts
+        releases: List of ActivityRelease dicts
 
     Returns:
         tuple: (correlated_issues, correlated_prs, correlated_releases, log)

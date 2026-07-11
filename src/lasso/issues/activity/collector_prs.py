@@ -1,4 +1,4 @@
-"""PR collector for the PDS EN Evidence Collector (issue #62).
+"""PR collector for the PDS EN Activity Collector (issue #62).
 
 Collects merged pull requests for a date range across discovered repos.
 """
@@ -7,10 +7,10 @@ import logging
 import github3.exceptions
 import requests.exceptions
 
-from lasso.issues.evidence.collector_issues import _build_repo_qualifier
-from lasso.issues.evidence.collector_issues import _repo_name_from_url
-from lasso.issues.evidence.schema import EvidencePR
-from lasso.issues.evidence.schema import normalize_pr
+from lasso.issues.activity.collector_issues import _build_repo_qualifier
+from lasso.issues.activity.collector_issues import _repo_name_from_url
+from lasso.issues.activity.schema import ActivityPR
+from lasso.issues.activity.schema import normalize_pr
 
 _logger = logging.getLogger(__name__)
 
@@ -30,13 +30,13 @@ def collect_prs(gh, org: str, repos, start_date: str, end_date: str) -> list:
         end_date: ISO 8601 date string (YYYY-MM-DD), inclusive end
 
     Returns:
-        list[EvidencePR]: Normalized PR records, sorted by (repo, number).
+        list[ActivityPR]: Normalized PR records, sorted by (repo, number).
     """
     repo_qualifier = _build_repo_qualifier(org, repos)
     query = f"org:{org} is:pr is:merged merged:{start_date}..{end_date}{repo_qualifier}"
     _logger.debug("PR search query: %s", query)
 
-    prs: list[EvidencePR] = []
+    prs: list[ActivityPR] = []
     seen_ids: set[int] = set()
 
     try:

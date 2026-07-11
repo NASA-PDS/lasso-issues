@@ -1,4 +1,4 @@
-"""Issue collector for the PDS EN Evidence Collector (issue #61).
+"""Issue collector for the PDS EN Activity Collector (issue #61).
 
 Provides repo discovery and issue collection across NASA-PDS GitHub org.
 """
@@ -6,8 +6,8 @@ import logging
 
 import github3.exceptions
 
-from lasso.issues.evidence.schema import EvidenceIssue
-from lasso.issues.evidence.schema import normalize_issue
+from lasso.issues.activity.schema import ActivityIssue
+from lasso.issues.activity.schema import normalize_issue
 from lasso.issues.issues.utils import get_ignored_repos
 from lasso.issues.issues.utils import load_products_config
 
@@ -15,7 +15,7 @@ _logger = logging.getLogger(__name__)
 
 
 def discover_repos(gh, org: str, repos_filter=None, exclude_config_path=None):
-    """Discover repositories to collect evidence from.
+    """Discover repositories to collect activity from.
 
     Args:
         gh: Authenticated github3.py GitHub object
@@ -70,7 +70,7 @@ def collect_issues(gh, org: str, repos, start_date: str, end_date: str) -> list:
         end_date: ISO 8601 date string (YYYY-MM-DD), inclusive end
 
     Returns:
-        list[EvidenceIssue]: Normalized issue records, sorted by (repo, number).
+        list[ActivityIssue]: Normalized issue records, sorted by (repo, number).
     """
     # Build repo restriction suffix for search query
     repo_qualifier = _build_repo_qualifier(org, repos)
@@ -79,7 +79,7 @@ def collect_issues(gh, org: str, repos, start_date: str, end_date: str) -> list:
     query = f"org:{org} is:issue is:closed closed:{start_date}..{end_date}{repo_qualifier}"
     _logger.debug("Issue search query: %s", query)
 
-    issues: list[EvidenceIssue] = []
+    issues: list[ActivityIssue] = []
     seen_ids: set[int] = set()
 
     try:

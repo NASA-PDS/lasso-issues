@@ -3,10 +3,10 @@ import unittest
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
-from lasso.issues.evidence.collector_issues import _build_repo_qualifier
-from lasso.issues.evidence.collector_issues import _repo_name_from_url
-from lasso.issues.evidence.collector_issues import discover_repos
-from lasso.issues.evidence.schema import normalize_issue
+from lasso.issues.activity.collector_issues import _build_repo_qualifier
+from lasso.issues.activity.collector_issues import _repo_name_from_url
+from lasso.issues.activity.collector_issues import discover_repos
+from lasso.issues.activity.schema import normalize_issue
 
 
 class TestRepoNameFromUrl(unittest.TestCase):
@@ -145,7 +145,7 @@ class TestDiscoverRepos(unittest.TestCase):
                 }
             }
         }
-        with patch("lasso.issues.evidence.collector_issues.load_products_config", return_value=config):
+        with patch("lasso.issues.activity.collector_issues.load_products_config", return_value=config):
             result = discover_repos(
                 gh, "NASA-PDS",
                 repos_filter=["good-repo", "bad-repo"],
@@ -160,7 +160,7 @@ class TestDiscoverRepos(unittest.TestCase):
                 "ignored": {"ignore": True, "repositories": ["bad-repo"]}
             }
         }
-        with patch("lasso.issues.evidence.collector_issues.load_products_config", return_value=config):
+        with patch("lasso.issues.activity.collector_issues.load_products_config", return_value=config):
             result = discover_repos(gh, "NASA-PDS", exclude_config_path="/fake/path.yaml")
         self.assertNotIn("bad-repo", result)
         self.assertIn("good-repo", result)

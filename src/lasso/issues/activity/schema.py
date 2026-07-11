@@ -1,6 +1,6 @@
-"""Canonical evidence schema for the PDS EN Evidence Collector.
+"""Canonical activity schema for the PDS EN Activity Collector.
 
-TypedDicts define the structure of evidence.json. normalize_* functions
+TypedDicts define the structure of activity.json. normalize_* functions
 convert github3.py objects into these dicts.
 """
 from typing import List
@@ -8,7 +8,7 @@ from typing import Optional
 from typing import TypedDict
 
 
-class EvidenceIssue(TypedDict):
+class ActivityIssue(TypedDict):
     """A normalized GitHub issue record."""
 
     id: int
@@ -25,7 +25,7 @@ class EvidenceIssue(TypedDict):
     closing_release: Optional[str]
 
 
-class EvidencePR(TypedDict):
+class ActivityPR(TypedDict):
     """A normalized merged pull request record."""
 
     id: int
@@ -41,7 +41,7 @@ class EvidencePR(TypedDict):
     linked_releases: List[str]
 
 
-class EvidenceRelease(TypedDict):
+class ActivityRelease(TypedDict):
     """A normalized GitHub Release or tag record."""
 
     id: Optional[int]
@@ -55,7 +55,7 @@ class EvidenceRelease(TypedDict):
     html_url: str
 
 
-class EvidenceMetadata(TypedDict):
+class ActivityMetadata(TypedDict):
     """Metadata block describing the collection run."""
 
     org: str
@@ -66,13 +66,13 @@ class EvidenceMetadata(TypedDict):
     repo_count: int
 
 
-class EvidenceDocument(TypedDict):
-    """Top-level evidence.json structure."""
+class ActivityDocument(TypedDict):
+    """Top-level activity.json structure."""
 
-    metadata: EvidenceMetadata
-    issues: List[EvidenceIssue]
-    pull_requests: List[EvidencePR]
-    releases: List[EvidenceRelease]
+    metadata: ActivityMetadata
+    issues: List[ActivityIssue]
+    pull_requests: List[ActivityPR]
+    releases: List[ActivityRelease]
     correlation_log: List[str]
 
 
@@ -85,15 +85,15 @@ def _isoformat(dt) -> Optional[str]:
     return str(dt)
 
 
-def normalize_issue(gh_issue, repo_name: str) -> EvidenceIssue:
-    """Normalize a github3.py issue object to EvidenceIssue.
+def normalize_issue(gh_issue, repo_name: str) -> ActivityIssue:
+    """Normalize a github3.py issue object to ActivityIssue.
 
     Args:
         gh_issue: github3.py Issue or SearchIssue object
         repo_name: repository name (e.g. 'lasso-issues')
 
     Returns:
-        EvidenceIssue dict
+        ActivityIssue dict
     """
     labels = []
     raw_labels = gh_issue.labels if isinstance(gh_issue.labels, list) else list(gh_issue.labels())
@@ -102,7 +102,7 @@ def normalize_issue(gh_issue, repo_name: str) -> EvidenceIssue:
         if name:
             labels.append(name)
 
-    return EvidenceIssue(
+    return ActivityIssue(
         id=gh_issue.id,
         repo=repo_name,
         number=gh_issue.number,
@@ -118,21 +118,21 @@ def normalize_issue(gh_issue, repo_name: str) -> EvidenceIssue:
     )
 
 
-def normalize_pr(gh_pr_data: dict, repo_name: str) -> EvidencePR:
-    """Normalize a PR data dict (from GitHub REST API) to EvidencePR.
+def normalize_pr(gh_pr_data: dict, repo_name: str) -> ActivityPR:
+    """Normalize a PR data dict (from GitHub REST API) to ActivityPR.
 
     Args:
         gh_pr_data: dict from GET /repos/{owner}/{repo}/pulls/{number}
         repo_name: repository name
 
     Returns:
-        EvidencePR dict
+        ActivityPR dict
     """
     author = None
     if gh_pr_data.get('user'):
         author = gh_pr_data['user'].get('login')
 
-    return EvidencePR(
+    return ActivityPR(
         id=gh_pr_data['id'],
         repo=repo_name,
         number=gh_pr_data['number'],
@@ -147,8 +147,8 @@ def normalize_pr(gh_pr_data: dict, repo_name: str) -> EvidencePR:
     )
 
 
-def normalize_release(gh_release_data: dict, repo_name: str, *, is_tag_fallback: bool = False) -> EvidenceRelease:
-    """Normalize a release data dict (from GitHub REST API) to EvidenceRelease.
+def normalize_release(gh_release_data: dict, repo_name: str, *, is_tag_fallback: bool = False) -> ActivityRelease:
+    """Normalize a release data dict (from GitHub REST API) to ActivityRelease.
 
     Args:
         gh_release_data: dict from GET /repos/{owner}/{repo}/releases or /tags
@@ -156,11 +156,11 @@ def normalize_release(gh_release_data: dict, repo_name: str, *, is_tag_fallback:
         is_tag_fallback: True when this record came from the tags API (no formal release)
 
     Returns:
-        EvidenceRelease dict
+        ActivityRelease dict
     """
     if is_tag_fallback:
         tag = gh_release_data.get('name', '')
-        return EvidenceRelease(
+        return ActivityRelease(
             id=None,
             repo=repo_name,
             tag=tag,
@@ -175,7 +175,7 @@ def normalize_release(gh_release_data: dict, repo_name: str, *, is_tag_fallback:
     body = gh_release_data.get('body') or ''
     body_summary = body[:500].strip()
 
-    return EvidenceRelease(
+    return ActivityRelease(
         id=gh_release_data.get('id'),
         repo=repo_name,
         tag=gh_release_data.get('tag_name', ''),

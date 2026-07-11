@@ -1,6 +1,6 @@
-# evidence.json Schema
+# activity.json Schema
 
-This document describes the canonical output format produced by `pds-evidence`.
+This document describes the canonical output format produced by `pds-activity`.
 
 ## Top-level structure
 
@@ -105,7 +105,7 @@ Issue testrepo#42 transitively linked to release v1.0.0 via closing PR #17
 
 ## Validation log
 
-Alongside `evidence.json`, a file named `evidence-validation.log` is written
+Alongside `activity.json`, a file named `activity-validation.log` is written
 with per-section counts and any collection warnings.
 
 ---

@@ -3,7 +3,7 @@ import unittest
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
-from lasso.issues.evidence.schema import normalize_pr
+from lasso.issues.activity.schema import normalize_pr
 
 
 class TestNormalizePr(unittest.TestCase):
@@ -58,7 +58,7 @@ class TestCollectPrsDraftExclusion(unittest.TestCase):
     """Test that collect_prs excludes draft PRs."""
 
     def test_draft_prs_are_excluded(self):
-        from lasso.issues.evidence.collector_prs import collect_prs
+        from lasso.issues.activity.collector_prs import collect_prs
 
         draft_pr_data = {
             "id": 9001, "number": 1, "title": "Draft", "state": "open",
@@ -75,13 +75,13 @@ class TestCollectPrsDraftExclusion(unittest.TestCase):
         gh = MagicMock()
         gh.search_issues.return_value = iter([search_result])
 
-        with patch("lasso.issues.evidence.collector_prs._fetch_pr_data", return_value=draft_pr_data):
+        with patch("lasso.issues.activity.collector_prs._fetch_pr_data", return_value=draft_pr_data):
             result = collect_prs(gh, "NASA-PDS", ["testrepo"], "2026-06-01", "2026-06-30")
 
         self.assertEqual(result, [])
 
     def test_non_draft_prs_are_included(self):
-        from lasso.issues.evidence.collector_prs import collect_prs
+        from lasso.issues.activity.collector_prs import collect_prs
 
         pr_data = {
             "id": 9002, "number": 2, "title": "Real PR", "state": "closed",
@@ -98,7 +98,7 @@ class TestCollectPrsDraftExclusion(unittest.TestCase):
         gh = MagicMock()
         gh.search_issues.return_value = iter([search_result])
 
-        with patch("lasso.issues.evidence.collector_prs._fetch_pr_data", return_value=pr_data):
+        with patch("lasso.issues.activity.collector_prs._fetch_pr_data", return_value=pr_data):
             result = collect_prs(gh, "NASA-PDS", ["testrepo"], "2026-06-01", "2026-06-30")
 
         self.assertEqual(len(result), 1)

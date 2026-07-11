@@ -1,9 +1,9 @@
 """Unit tests for correlator.py (issue #64)."""
 import unittest
 
-from lasso.issues.evidence.correlator import _extract_closing_issue_numbers
-from lasso.issues.evidence.correlator import _extract_pr_numbers
-from lasso.issues.evidence.correlator import correlate
+from lasso.issues.activity.correlator import _extract_closing_issue_numbers
+from lasso.issues.activity.correlator import _extract_pr_numbers
+from lasso.issues.activity.correlator import correlate
 
 
 def _issue(number, repo="testrepo"):

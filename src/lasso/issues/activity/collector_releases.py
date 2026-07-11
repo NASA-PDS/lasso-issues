@@ -1,4 +1,4 @@
-"""Release/Tag collector for the PDS EN Evidence Collector (issue #63).
+"""Release/Tag collector for the PDS EN Activity Collector (issue #63).
 
 Collects GitHub Releases (with tag fallback) for a date range.
 """
@@ -9,8 +9,8 @@ from datetime import timezone
 import github3.exceptions
 import requests.exceptions
 
-from lasso.issues.evidence.schema import EvidenceRelease
-from lasso.issues.evidence.schema import normalize_release
+from lasso.issues.activity.schema import ActivityRelease
+from lasso.issues.activity.schema import normalize_release
 
 _logger = logging.getLogger(__name__)
 
@@ -30,12 +30,12 @@ def collect_releases(gh, org: str, repos, start_date: str, end_date: str) -> lis
         end_date: ISO 8601 date string (YYYY-MM-DD), inclusive end
 
     Returns:
-        list[EvidenceRelease]: Normalized release records, sorted by (repo, published_at).
+        list[ActivityRelease]: Normalized release records, sorted by (repo, published_at).
     """
     start_dt = _parse_date(start_date)
     end_dt = _parse_date(end_date, end_of_day=True)
 
-    releases: list[EvidenceRelease] = []
+    releases: list[ActivityRelease] = []
 
     for repo_name in sorted(repos):
         try:
