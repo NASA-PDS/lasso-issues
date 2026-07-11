@@ -8,6 +8,15 @@ from typing import Optional
 from typing import TypedDict
 
 
+class ParentIssueSummary(TypedDict):
+    """Summary of a parent issue (Theme or Epic) linked to a collected issue."""
+
+    number: int
+    title: str
+    state: str
+    html_url: str
+
+
 class ActivityIssue(TypedDict):
     """A normalized GitHub issue record."""
 
@@ -20,6 +29,7 @@ class ActivityIssue(TypedDict):
     opened_at: Optional[str]
     closed_at: Optional[str]
     html_url: str
+    parent_issue: Optional[ParentIssueSummary]
     linked_prs: List[int]
     linked_releases: List[str]
     closing_release: Optional[str]
@@ -85,12 +95,14 @@ def _isoformat(dt) -> Optional[str]:
     return str(dt)
 
 
-def normalize_issue(gh_issue, repo_name: str) -> ActivityIssue:
+def normalize_issue(gh_issue, repo_name: str, parent: Optional[dict] = None) -> ActivityIssue:
     """Normalize a github3.py issue object to ActivityIssue.
 
     Args:
         gh_issue: github3.py Issue or SearchIssue object
         repo_name: repository name (e.g. 'lasso-issues')
+        parent: Optional dict from the GitHub parent-issue API (number, title, state, html_url).
+            When present, indicates this issue is a sub-task of a Theme or Epic.
 
     Returns:
         ActivityIssue dict
@@ -102,6 +114,15 @@ def normalize_issue(gh_issue, repo_name: str) -> ActivityIssue:
         if name:
             labels.append(name)
 
+    parent_summary: Optional[ParentIssueSummary] = None
+    if parent:
+        parent_summary = ParentIssueSummary(
+            number=parent.get('number'),
+            title=parent.get('title', ''),
+            state=parent.get('state', ''),
+            html_url=parent.get('html_url', ''),
+        )
+
     return ActivityIssue(
         id=gh_issue.id,
         repo=repo_name,
@@ -112,6 +133,7 @@ def normalize_issue(gh_issue, repo_name: str) -> ActivityIssue:
         opened_at=_isoformat(gh_issue.created_at),
         closed_at=_isoformat(gh_issue.closed_at),
         html_url=gh_issue.html_url,
+        parent_issue=parent_summary,
         linked_prs=[],
         linked_releases=[],
         closing_release=None,

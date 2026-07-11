@@ -105,7 +105,7 @@ Two files are written alongside each run:
 
 #### What gets collected
 
-- **Issues**: closed issues in the date range, normalized with labels, open/close timestamps, and links to PRs and releases
+- **Issues**: closed issues in the date range, normalized with labels, open/close timestamps, links to PRs and releases, and a `parent_issue` summary (number, title, state) when the issue belongs to a Theme or Epic — `parent_issue.state: "open"` indicates partial progress toward a larger deliverable
 - **Pull requests**: merged PRs (drafts excluded), with author, body, and links to issues they close
 - **Releases**: GitHub Releases (with git tag fallback for repos that don't use formal releases), paginated past 100
 - **Correlation**: `closes #N` / `fixes #N` references in PR bodies link PRs to issues; release body `#N` references link releases to PRs; transitive links propagate issue→release

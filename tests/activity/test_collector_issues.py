@@ -90,6 +90,31 @@ class TestNormalizeIssue(unittest.TestCase):
         self.assertEqual(result['linked_releases'], [])
         self.assertIsNone(result['closing_release'])
 
+    def test_no_parent_returns_null(self):
+        mock_issue = self._make_mock_issue()
+        result = normalize_issue(mock_issue, "testrepo")
+        self.assertIsNone(result['parent_issue'])
+
+    def test_closed_parent_issue_attached(self):
+        mock_issue = self._make_mock_issue(number=5)
+        parent = {'number': 1, 'title': 'Sprint Theme', 'state': 'closed',
+                  'html_url': 'https://github.com/NASA-PDS/testrepo/issues/1'}
+        result = normalize_issue(mock_issue, "testrepo", parent=parent)
+
+        self.assertIsNotNone(result['parent_issue'])
+        self.assertEqual(result['parent_issue']['number'], 1)
+        self.assertEqual(result['parent_issue']['title'], 'Sprint Theme')
+        self.assertEqual(result['parent_issue']['state'], 'closed')
+
+    def test_open_parent_issue_state_preserved(self):
+        """An open parent means partial progress toward a deliverable."""
+        mock_issue = self._make_mock_issue(number=5)
+        parent = {'number': 2, 'title': 'Ongoing Epic', 'state': 'open',
+                  'html_url': 'https://github.com/NASA-PDS/testrepo/issues/2'}
+        result = normalize_issue(mock_issue, "testrepo", parent=parent)
+
+        self.assertEqual(result['parent_issue']['state'], 'open')
+
     def test_none_closed_at(self):
         mock_issue = self._make_mock_issue(state="open", closed_at=None)
         result = normalize_issue(mock_issue, "testrepo")

@@ -8,6 +8,7 @@ import github3.exceptions
 
 from lasso.issues.activity.schema import ActivityIssue
 from lasso.issues.activity.schema import normalize_issue
+from lasso.issues.github import get_parent_issue
 from lasso.issues.issues.utils import get_ignored_repos
 from lasso.issues.issues.utils import load_products_config
 
@@ -93,7 +94,8 @@ def collect_issues(gh, org: str, repos, start_date: str, end_date: str) -> list:
                 _logger.warning("Could not determine repo for issue %s", search_issue.html_url)
                 continue
 
-            issues.append(normalize_issue(search_issue, repo_name))
+            parent = get_parent_issue(gh, org, repo_name, search_issue.number)
+            issues.append(normalize_issue(search_issue, repo_name, parent=parent))
 
     except github3.exceptions.GitHubException as exc:
         _logger.error("Error searching issues with query '%s': %s", query, exc)

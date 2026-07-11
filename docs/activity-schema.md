@@ -44,9 +44,21 @@ Each entry is a closed GitHub issue normalized to the following fields:
 | `opened_at` | string (ISO 8601) or null | When the issue was created |
 | `closed_at` | string (ISO 8601) or null | When the issue was closed |
 | `html_url` | string | GitHub URL |
+| `parent_issue` | object or null | Parent Theme/Epic — see below. `null` if no parent. |
 | `linked_prs` | integer[] | PR numbers (same repo) linked via body references |
 | `linked_releases` | string[] | Release tags linked transitively via closing PRs |
 | `closing_release` | string or null | Earliest release tag that includes this issue |
+
+### `parent_issue` object
+
+| Field | Type | Description |
+|---|---|---|
+| `number` | integer | Parent issue number |
+| `title` | string | Parent issue title |
+| `state` | string | `open` or `closed` — use this to distinguish partial progress (`open`) from a fully delivered theme (`closed`) |
+| `html_url` | string | GitHub URL of the parent |
+
+A `null` `parent_issue` means the issue is standalone (no Theme or Epic parent). A parent with `state: "open"` means this closed issue is progress toward a deliverable that is not yet complete.
 
 ---
 
