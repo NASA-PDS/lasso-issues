@@ -9,11 +9,17 @@ PDS Lasso Issues is a Python package for handling GitHub issues for the Planetar
 ## Development Commands
 
 ### Setup
+
+The dev virtualenv lives at `/Users/jpadams/.virtualenvs/pdsen`. Always activate it before running any dev commands — `tox`, `pytest`, `pre-commit`, and the `pds-*` CLIs are all installed there.
+
 ```bash
+# Activate the dev virtualenv (required before any command below)
+source /Users/jpadams/.virtualenvs/pdsen/bin/activate
+
 # Install in editable mode with dev dependencies
 pip install --editable '.[dev]'
 
-# Set up pre-commit hooks (required for contributing)
+# Set up pre-commit hooks (required for contributing; run once after checkout)
 pre-commit install
 pre-commit install -t pre-push
 pre-commit install -t prepare-commit-msg
@@ -22,21 +28,23 @@ pre-commit install -t commit-msg
 
 ### Testing
 ```bash
-# Run all tests with coverage
-pytest --cov=src --cov-report=xml
-
-# Run tests using tox (recommended)
+# Activate first, then run tox (preferred — matches CI)
+source /Users/jpadams/.virtualenvs/pdsen/bin/activate
 tox -e py313
 
-# Run a single test file
-pytest tests/issues/test_move_issues.py
+# Quick unit-test run (skips integration tests that need GITHUB_TOKEN)
+python -m pytest tests/ -m "not integration" -p no:asyncio
 
-# Run tests with parallel execution (default via pytest-xdist)
-pytest -n auto --cov=pds
+# Run a single test file
+python -m pytest tests/activity/test_correlator.py
+
+# Integration tests (require GITHUB_TOKEN)
+GITHUB_TOKEN=<token> python -m pytest tests/ -m integration -v
 ```
 
 ### Linting
 ```bash
+source /Users/jpadams/.virtualenvs/pdsen/bin/activate
 # Run all linters via tox
 tox -e lint
 
@@ -47,7 +55,7 @@ mypy src  # Note: currently disabled due to missing type hints in github3.py
 
 ### Documentation
 ```bash
-# Build documentation
+source /Users/jpadams/.virtualenvs/pdsen/bin/activate
 tox -e docs
 # Output: docs/build/index.html
 ```
