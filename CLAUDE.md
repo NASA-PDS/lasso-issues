@@ -10,11 +10,11 @@ PDS Lasso Issues is a Python package for handling GitHub issues for the Planetar
 
 ### Setup
 
-The dev virtualenv lives at `/Users/jpadams/.virtualenvs/pdsen`. Always activate it before running any dev commands — `tox`, `pytest`, `pre-commit`, and the `pds-*` CLIs are all installed there.
+The dev virtualenv lives in the repo directory as `venv/` or `.venv` (created per the README installation instructions). Always activate it before running any dev commands — `tox`, `pytest`, `pre-commit`, and the `pds-*` CLIs are all installed there.
 
 ```bash
-# Activate the dev virtualenv (required before any command below)
-source /Users/jpadams/.virtualenvs/pdsen/bin/activate
+# Activate the dev virtualenv — use whichever exists
+source venv/bin/activate   # or: source .venv/bin/activate
 
 # Install in editable mode with dev dependencies
 pip install --editable '.[dev]'
@@ -29,7 +29,7 @@ pre-commit install -t commit-msg
 ### Testing
 ```bash
 # Activate first, then run tox (preferred — matches CI)
-source /Users/jpadams/.virtualenvs/pdsen/bin/activate
+source venv/bin/activate   # or: source .venv/bin/activate
 tox -e py313
 
 # Quick unit-test run (skips integration tests that need GITHUB_TOKEN)
@@ -44,8 +44,7 @@ GITHUB_TOKEN=<token> python -m pytest tests/ -m integration -v
 
 ### Linting
 ```bash
-source /Users/jpadams/.virtualenvs/pdsen/bin/activate
-# Run all linters via tox
+source venv/bin/activate   # or: source .venv/bin/activate
 tox -e lint
 
 # Run individual linters
@@ -55,7 +54,7 @@ mypy src  # Note: currently disabled due to missing type hints in github3.py
 
 ### Documentation
 ```bash
-source /Users/jpadams/.virtualenvs/pdsen/bin/activate
+source venv/bin/activate   # or: source .venv/bin/activate
 tox -e docs
 # Output: docs/build/index.html
 ```
