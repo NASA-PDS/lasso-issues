@@ -57,11 +57,13 @@ def discover_repos(gh, org: str, repos_filter=None, exclude_config_path=None):
 
 
 def collect_issues(gh, org: str, repos, start_date: str, end_date: str) -> list:
-    """Collect and normalize issues across the given repositories.
+    """Collect and normalize issues closed within the date range.
 
-    Searches for issues (not PRs) updated within the date range using
-    GitHub's search API. Mirrors the pattern in
-    ``lasso.issues.issues.utils.get_org_issues_groupby_type_and_repo``.
+    Searches for closed issues using GitHub's search API (``is:closed
+    closed:{start}..{end}``). Note: GitHub's search API caps results at
+    1000 per query. For orgs with very high issue volume, narrow the date
+    range or restrict to specific repos via ``repos`` to stay under the limit.
+    A warning is logged when the result count reaches the cap.
 
     Args:
         gh: Authenticated github3.py GitHub object
@@ -102,6 +104,12 @@ def collect_issues(gh, org: str, repos, start_date: str, end_date: str) -> list:
         raise
 
     issues.sort(key=lambda i: (i['repo'], i['number']))
+    if len(issues) >= 1000:
+        _logger.warning(
+            "Collected %d issues — GitHub search caps results at 1000. "
+            "Results may be incomplete. Narrow the date range or use --repos to limit scope.",
+            len(issues),
+        )
     _logger.info("Collected %d closed issues", len(issues))
     return issues
 

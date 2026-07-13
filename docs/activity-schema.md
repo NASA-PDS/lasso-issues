@@ -130,3 +130,11 @@ All artifact lists are sorted deterministically:
 - `correlation_log`: alphabetically
 
 This ensures that identical inputs always produce byte-for-byte identical output.
+
+> **Note:** `generated_at` in `metadata` is a UTC timestamp of the run, so it will differ between runs even for the same inputs. All artifact lists are stable across runs.
+
+---
+
+## Known limitations
+
+- **GitHub search cap**: GitHub's search API returns at most 1000 results per query. If a date range produces more than 1000 closed issues or merged PRs, results will be silently truncated at the API level. A warning is logged when the cap is reached. Mitigation: narrow the date range or use `--repos` to restrict scope.
