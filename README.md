@@ -4,6 +4,7 @@ The PDS Lasso Issues package provides utilities handle issues on GitHub. It prov
 
 - `milestones`
 - `pds-issues`
+- `pds-activity`
 - `move-issues`
 - `pds-labels`
 - `add-version-label-to-open-bugs`
@@ -63,6 +64,51 @@ When using `--group-by-component`, repositories are grouped by their product/com
 - `--format=rst`: reStructuredText Release Description Document with theme trees
 - `--format=metrics`: Summary metrics output
 - `--format=csv`: CSV export for test management (TestRail integration)
+
+### pds-activity
+
+Collect GitHub issues, pull requests, and releases across NASA-PDS repositories for a date range and write a canonical `activity.json` file. Used to power the PDS EN status reporting pipeline.
+
+See [docs/activity-schema.md](docs/activity-schema.md) for the full output schema reference.
+
+```bash
+export GITHUB_TOKEN=your_token_here
+
+# Collect activity for a specific date range across all NASA-PDS repos
+pds-activity --start-date 2026-01-01 --end-date 2026-06-30
+
+# Restrict to specific repositories
+pds-activity --start-date 2026-01-01 --end-date 2026-06-30 \
+    --repos validate registry lasso-issues
+
+# Write output to a custom path
+pds-activity --start-date 2026-01-01 --end-date 2026-06-30 \
+    --output /tmp/sprint-activity.json
+
+# Exclude repos marked ignore:true in a products config YAML
+pds-activity --start-date 2026-01-01 --end-date 2026-06-30 \
+    --exclude-config conf/pds-products.yaml
+
+# Target a different GitHub org
+pds-activity --start-date 2026-01-01 --end-date 2026-06-30 \
+    --org MY-ORG --repos my-repo
+```
+
+#### Output files
+
+Two files are written alongside each run:
+
+| File | Contents |
+|---|---|
+| `activity.json` (default) | Canonical JSON with `metadata`, `issues`, `pull_requests`, `releases`, and `correlation_log` sections |
+| `activity-validation.log` | Per-section counts and any collection warnings |
+
+#### What gets collected
+
+- **Issues**: closed issues in the date range, normalized with labels, open/close timestamps, links to PRs and releases, and a `parent_issue` summary (number, title, state) when the issue belongs to a Theme or Epic — `parent_issue.state: "open"` indicates partial progress toward a larger deliverable
+- **Pull requests**: merged PRs (drafts excluded), with author, body, and links to issues they close
+- **Releases**: GitHub Releases (with git tag fallback for repos that don't use formal releases), paginated past 100
+- **Correlation**: `closes #N` / `fixes #N` references in PR bodies link PRs to issues; release body `#N` references link releases to PRs; transitive links propagate issue→release
 
 ### milestones
 
