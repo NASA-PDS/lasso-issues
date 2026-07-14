@@ -132,11 +132,10 @@ def collect_issues(gh, org: str, repos, start_date: str, end_date: str) -> list:
     Returns:
         list[ActivityIssue]: Normalized issue records, sorted by (repo, number).
     """
-    # Build repo restriction suffix for search query
-    repo_qualifier = _build_repo_qualifier(org, repos)
+    repos_set = set(repos) if repos else None
 
-    # Search for closed issues in the date range
-    query = f"org:{org} is:issue is:closed closed:{start_date}..{end_date}{repo_qualifier}"
+    # Always query the whole org — repo: qualifiers balloon the URL and cause 502s at scale.
+    query = f"org:{org} is:issue is:closed closed:{start_date}..{end_date}"
     _logger.debug("Issue search query: %s", query)
 
     def _search_all():
@@ -149,6 +148,8 @@ def collect_issues(gh, org: str, repos, start_date: str, end_date: str) -> list:
             repo_name = _repo_name_from_url(search_issue.html_url)
             if not repo_name:
                 _logger.warning("Could not determine repo for issue %s", search_issue.html_url)
+                continue
+            if repos_set is not None and repo_name not in repos_set:
                 continue
             parent = get_parent_issue(gh, org, repo_name, search_issue.number)
             results.append(normalize_issue(search_issue, repo_name, parent=parent))
@@ -169,14 +170,6 @@ def collect_issues(gh, org: str, repos, start_date: str, end_date: str) -> list:
         )
     _logger.info("Collected %d closed issues", len(issues))
     return issues
-
-
-def _build_repo_qualifier(org: str, repos) -> str:
-    """Build a space-separated list of repo: qualifiers for a GitHub search query."""
-    if not repos:
-        return ''
-    parts = [f' repo:{org}/{r}' for r in repos]
-    return ''.join(parts)
 
 
 def _repo_name_from_url(html_url: str) -> str:
