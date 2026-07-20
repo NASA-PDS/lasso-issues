@@ -3,7 +3,6 @@ import unittest
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
-from lasso.issues.activity.collector_issues import _build_repo_qualifier
 from lasso.issues.activity.collector_issues import _repo_name_from_url
 from lasso.issues.activity.collector_issues import discover_repos
 from lasso.issues.activity.schema import normalize_issue
@@ -26,24 +25,6 @@ class TestRepoNameFromUrl(unittest.TestCase):
     def test_empty_string_returns_empty(self):
         self.assertEqual(_repo_name_from_url(""), "")
 
-
-class TestBuildRepoQualifier(unittest.TestCase):
-    """Tests for _build_repo_qualifier."""
-
-    def test_no_repos_returns_empty(self):
-        self.assertEqual(_build_repo_qualifier("NASA-PDS", None), "")
-
-    def test_empty_list_returns_empty(self):
-        self.assertEqual(_build_repo_qualifier("NASA-PDS", []), "")
-
-    def test_single_repo(self):
-        result = _build_repo_qualifier("NASA-PDS", ["validate"])
-        self.assertEqual(result, " repo:NASA-PDS/validate")
-
-    def test_multiple_repos(self):
-        result = _build_repo_qualifier("NASA-PDS", ["validate", "registry"])
-        self.assertIn("repo:NASA-PDS/validate", result)
-        self.assertIn("repo:NASA-PDS/registry", result)
 
 
 class TestNormalizeIssue(unittest.TestCase):

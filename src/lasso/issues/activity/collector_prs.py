@@ -7,7 +7,6 @@ import logging
 import github3.exceptions
 import requests.exceptions
 
-from lasso.issues.activity.collector_issues import _build_repo_qualifier
 from lasso.issues.activity.collector_issues import _repo_name_from_url
 from lasso.issues.activity.schema import ActivityPR
 from lasso.issues.activity.schema import normalize_pr
@@ -32,8 +31,9 @@ def collect_prs(gh, org: str, repos, start_date: str, end_date: str) -> list:
     Returns:
         list[ActivityPR]: Normalized PR records, sorted by (repo, number).
     """
-    repo_qualifier = _build_repo_qualifier(org, repos)
-    query = f"org:{org} is:pr is:merged merged:{start_date}..{end_date}{repo_qualifier}"
+    repos_set = set(repos) if repos else None
+    # Always query the whole org — repo: qualifiers balloon the URL and cause 502s at scale.
+    query = f"org:{org} is:pr is:merged merged:{start_date}..{end_date}"
     _logger.debug("PR search query: %s", query)
 
     prs: list[ActivityPR] = []
@@ -48,6 +48,8 @@ def collect_prs(gh, org: str, repos, start_date: str, end_date: str) -> list:
             repo_name = _repo_name_from_url(search_pr.html_url)
             if not repo_name:
                 _logger.warning("Could not determine repo for PR %s", search_pr.html_url)
+                continue
+            if repos_set is not None and repo_name not in repos_set:
                 continue
 
             pr_number = search_pr.number
