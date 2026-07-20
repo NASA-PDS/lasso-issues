@@ -1307,8 +1307,7 @@ class CsvTestCaseReport(RddReport):
         self._build_issue_refs = []
 
     def _extract_testrail_data(self, response_json, data_key):
-        """
-        Extract data from TestRail API response, handling both v8 and v10+ formats.
+        """Extract data from TestRail API response, handling both v8 and v10+ formats.
 
         TestRail v8: Direct array or simple dict
         TestRail v10+: Paginated response with wrapper containing offset, limit, size, _links

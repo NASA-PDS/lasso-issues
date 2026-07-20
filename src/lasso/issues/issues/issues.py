@@ -25,7 +25,6 @@ DEFAULT_GITHUB_ORG = "NASA-PDS"
 _logger = logging.getLogger(__name__)
 
 
-
 def build_parent_child_map(gh, org, repo_name, issues_list, fetch_parents=False):
     """Build a map of parent issues to their children using GitHub's native sub-issues API.
 
