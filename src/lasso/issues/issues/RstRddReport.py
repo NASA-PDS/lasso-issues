@@ -1493,7 +1493,7 @@ class CsvTestCaseReport(RddReport):
                 verify=False,
             )
 
-            if cases_resp.status_code != 200:
+            if not cases_resp.ok:
                 self._logger.warning(
                     "Failed to get existing test cases: HTTP %s\n%s",
                     cases_resp.status_code,
