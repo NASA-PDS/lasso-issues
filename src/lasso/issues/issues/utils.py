@@ -99,16 +99,16 @@ def is_spillover_to_ignore(issue, current_build):
     Returns:
         bool: True if the issue should be excluded from the current build's report.
     """
-    label_names = [get_label_name(l) for l in get_labels_list(issue)]
+    label_names = [get_label_name(label) for label in get_labels_list(issue)]
 
     if "task-spillover" not in label_names:
         return False
 
-    build_labels = [l for l in label_names if _BUILD_LABEL_RE.match(l)]
+    build_labels = [label for label in label_names if _BUILD_LABEL_RE.match(label)]
     if not build_labels:
         return False
 
-    max_build_num = max(_parse_build_number(l) for l in build_labels)
+    max_build_num = max(_parse_build_number(label) for label in build_labels)
     return _parse_build_number(current_build) >= max_build_num
 
 
