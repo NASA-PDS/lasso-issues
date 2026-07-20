@@ -4,6 +4,7 @@ Now if only someone could define "Rdd"! 😆
 """
 import logging
 import re
+import sys
 import types
 from datetime import datetime
 from enum import Enum
@@ -1339,7 +1340,7 @@ class CsvTestCaseReport(RddReport):
             verify=False,
         )
 
-        if section_response.status_code != 200:
+        if not section_response.ok:
             raise RuntimeError(
                 f"TestRail API error: HTTP {section_response.status_code}\n{section_response.text}"
             )
@@ -1349,21 +1350,21 @@ class CsvTestCaseReport(RddReport):
 
     def create(self, repos):
         """Create."""
-        print("=" * 80)
-        print("SECURITY NOTICE:")
-        print("This script disables SSL certificate verification (verify=False) for all")
-        print("TestRail API requests and suppresses InsecureRequestWarning messages.")
-        print("This configuration should only be used in trusted network environments.")
-        print("=" * 80)
-        print()
+        print("=" * 80, file=sys.stderr)
+        print("SECURITY NOTICE:", file=sys.stderr)
+        print("This script disables SSL certificate verification (verify=False) for all", file=sys.stderr)
+        print("TestRail API requests and suppresses InsecureRequestWarning messages.", file=sys.stderr)
+        print("This configuration should only be used in trusted network environments.", file=sys.stderr)
+        print("=" * 80, file=sys.stderr)
 
         for _repo in self.available_repos():
             if not repos or _repo.name in repos:
                 self.add_repo(_repo)
 
         # print test ref for test coverage
+        print("-" * 100)
         print(
-            "\nKeep this list of github ticket references to create the coverage report, using the summary of references:"
+            "Keep this list of github ticket references to create the coverage report, using the summary of references:"
         )
         print("\n".join(self._build_issue_refs))
 
