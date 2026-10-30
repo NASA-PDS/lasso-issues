@@ -1403,6 +1403,50 @@ class CsvTestCaseReport(RddReport):
                 return True
         return False
 
+    # "**Given**", "**When I perform**", "**When I execute**", "**And**", ...
+    ACCEPTANCE_STEP_REGEX = re.compile(r"^\*\*(Given|When\b[^*]*|And|But)\*\*")
+    # "**Then I expect**", ...
+    ACCEPTANCE_EXPECTED_REGEX = re.compile(r"^\*\*Then\b[^*]*\*\*")
+
+    def _split_acceptance_criteria(self, acceptance_criteria_str: str, readable_issue_url: str):
+        """Split an Acceptance Criteria section into one dict of TestRail fields per Given/When/Then block.
+
+        A block ends at a blank line, at the end of the section, or when a new step follows an expected result.
+        """
+        criteria = []
+        current = {}
+
+        for line in acceptance_criteria_str.splitlines():
+            assertion = line.strip()
+            is_step = self.ACCEPTANCE_STEP_REGEX.match(assertion)
+            is_expected = self.ACCEPTANCE_EXPECTED_REGEX.match(assertion)
+
+            if not assertion:
+                if current:
+                    criteria.append(current)
+                    current = {}
+                continue
+
+            if "automation ID:" in assertion:
+                current["custom_automation_id"] = assertion.strip("_()\n").replace("automation ID:", "").strip()
+                continue
+
+            # a "Given"/"When" following an expected result starts the next criteria (an "And"/"But" continues it)
+            if is_step and "custom_expected" in current and not assertion.startswith(("**And**", "**But**")):
+                criteria.append(current)
+                current = {}
+
+            if is_expected or "custom_expected" in current:
+                current["custom_expected"] = current.get("custom_expected", "") + assertion + "\n"
+            elif is_step or "custom_steps" in current:
+                # steps, or the continuation of the previous step
+                current["custom_steps"] = current.get("custom_steps", readable_issue_url + "\n\n") + assertion + "\n"
+
+        if current:
+            criteria.append(current)
+
+        return criteria
+
     def _post_test_case(self, issue_ref, acn, test_case: dict, repo_name):
         self._logger.info("  Posting to TestRail: %s-AC%s", issue_ref, acn)
         case_ref = f"{issue_ref}-AC{acn}"
@@ -1436,29 +1480,13 @@ class CsvTestCaseReport(RddReport):
 
         try:
             acceptance_criteria_str = self._extract_acceptance_criteria(issue.body)
-            acceptance_criteria_split = acceptance_criteria_str.split("\n")
-            acceptance_criteria = {}
-            for assertion in acceptance_criteria_split:
-                # NOTE: currently doesn't account for assertion statements with newlines
-                if assertion.startswith("**Given**") or assertion.startswith("**When I perform**"):
-                    if "custom_steps" not in acceptance_criteria:
-                        acceptance_criteria["custom_steps"] = readable_issue_url + "\n\n"
-                    acceptance_criteria["custom_steps"] += assertion + "\n"
-                elif assertion.startswith("**Then I expect**"):
-                    acceptance_criteria["custom_expected"] = assertion + "\n"
-                elif "automation ID:" in assertion:
-                    automation_id = assertion.strip("_()\n").replace("automation ID:", "").strip()
-                    acceptance_criteria["custom_automation_id"] = automation_id
-                elif acceptance_criteria:
-                    test_case_labels.append(f"AC{acn}")
-                    test_case_labels.append("valid")
-                    test_case.update(acceptance_criteria)
-                    test_case["refs"] = ",".join(test_case_labels)
-                    self._post_test_case(issue_ref, acn, test_case, repo_name)
-
-                    acn += 1
-                    del test_case_labels[-2:]
-                    acceptance_criteria = {}
+            for acceptance_criteria in self._split_acceptance_criteria(acceptance_criteria_str, readable_issue_url):
+                # fresh dict per criteria so that fields don't leak from one test case to the next
+                criteria_test_case = dict(test_case)
+                criteria_test_case.update(acceptance_criteria)
+                criteria_test_case["refs"] = ",".join(test_case_labels + [f"AC{acn}", "valid"])
+                self._post_test_case(issue_ref, acn, criteria_test_case, repo_name)
+                acn += 1
 
         except NoAcceptanceCriteriaFoundError:
             test_case_labels.append(f"AC{acn}")
