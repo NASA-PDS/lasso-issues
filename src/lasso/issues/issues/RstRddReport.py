@@ -207,7 +207,7 @@ class RddReport:
 
     def available_repos(self):
         """Yield available repositories."""
-        for _repo in self._gh.repositories_by(self._org):
+        for _repo in self._gh.organization(self._org).repositories(type="all"):
             if _repo.name not in self._ignored_repos:
                 yield _repo
 
