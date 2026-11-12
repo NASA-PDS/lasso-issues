@@ -207,7 +207,7 @@ class RddReport:
 
     def available_repos(self):
         """Yield available repositories."""
-        for _repo in self._gh.repositories_by(self._org):
+        for _repo in self._gh.organization(self._org).repositories(type="all"):
             if _repo.name not in self._ignored_repos:
                 yield _repo
 
@@ -1348,6 +1348,10 @@ class CsvTestCaseReport(RddReport):
         section_list = self._extract_testrail_data(section_response.json(), "sections")
         self._sections = {s["name"]: s["id"] for s in section_list}
 
+    def _ref_sort_key(self, ref):
+        repo, number = ref.rsplit("#", 1)
+        return repo.lower(), int(number)
+
     def create(self, repos):
         """Create."""
         print("=" * 80, file=sys.stderr)
@@ -1366,7 +1370,7 @@ class CsvTestCaseReport(RddReport):
         print(
             "Keep this list of github ticket references to create the coverage report, using the summary of references:"
         )
-        print("\n".join(self._build_issue_refs))
+        print("\n".join(sorted(self._build_issue_refs, key=self._ref_sort_key)))
 
         df = pd.DataFrame.from_dict(self._issues)
         df.to_csv(self._filename)
